@@ -132,3 +132,23 @@ Begruendung:
 - einfacher fuer SSO, Sessions und gemeinsames Layout
 - weniger technologische Streuung im Projekt
 - FastAPI ist spaeter weiterhin moeglich, falls API-lastige Anforderungen wachsen
+
+## ADR-008: SAFV wird als offizielle Kontextquelle, nicht als Primaer-Breakdown genutzt
+
+Status:
+
+- akzeptiert
+
+Entscheid:
+
+- `tt-analytics` darf SAFV-Spielseiten als spielbezogene Importquelle nutzen
+- SAFV wird fuer offiziellen Spielkontext, Roster und Event-Log genutzt
+- SAFV wird nicht als Ersatz fuer Clip-Analyse, Hudl-Breakdown oder manuelles Tagging behandelt
+- personbezogene Tendenzaussagen duerfen nur mit klarer Quellenkennzeichnung erscheinen
+
+Begruendung:
+
+- SAFV liefert vernuenftige offizielle Spiel- und Kaderdaten
+- die Daten sind fuer Reports und Nummern-Mapping wertvoll
+- die Quelle liefert aber keine vollstaendige Scouting-Semantik wie Personnel, Coverage oder Blitz-Tracking
+- eine saubere Trennung zwischen `official` und `ai_inferred` reduziert fachliche Fehlinterpretationen

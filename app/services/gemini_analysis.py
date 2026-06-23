@@ -62,11 +62,79 @@ ANALYSIS_SCHEMA = {
             "type": "object",
             "properties": {
                 "odk": {"type": ["string", "null"]},
+                "personnel": {"type": ["string", "null"]},
                 "off_form": {"type": ["string", "null"]},
+                "off_str": {"type": ["string", "null"]},
+                "backfield": {"type": ["string", "null"]},
+                "off_play": {"type": ["string", "null"]},
+                "bs_concept": {"type": ["string", "null"]},
+                "play_dir": {"type": ["string", "null"]},
+                "play_type": {"type": ["string", "null"]},
                 "def_front": {"type": ["string", "null"]},
+                "def_str": {"type": ["string", "null"]},
+                "coverage": {"type": ["string", "null"]},
+                "blitz": {"type": ["string", "null"]},
+                "pressure": {"type": ["string", "null"]},
                 "gain_loss": {"type": ["integer", "null"]},
                 "motion_dir": {"type": ["string", "null"]},
                 "result_label": {"type": ["string", "null"]},
+                "penalty": {"type": ["string", "null"]},
+                "pen_yards": {"type": ["integer", "null"]},
+                "gap": {"type": ["string", "null"]},
+                "pass_zone": {"type": ["string", "null"]},
+                "motion": {"type": ["string", "null"]},
+                "eff": {"type": ["string", "null"]},
+                "and_10": {"type": ["string", "null"]},
+                "two_min": {"type": ["boolean", "null"]},
+                "box": {"type": ["integer", "null"]},
+                "comments": {"type": ["string", "null"]},
+                "deep_shot": {"type": ["boolean", "null"]},
+                "fib": {"type": ["string", "null"]},
+                "field_zone": {"type": ["string", "null"]},
+                "intercepted_by_jersey": {"type": ["string", "null"]},
+                "intercepted_by_name": {"type": ["string", "null"]},
+                "key_player_jersey": {"type": ["string", "null"]},
+                "key_player_name": {"type": ["string", "null"]},
+                "kick_yards": {"type": ["integer", "null"]},
+                "kicker_jersey": {"type": ["string", "null"]},
+                "kicker_name": {"type": ["string", "null"]},
+                "nose_number": {"type": ["string", "null"]},
+                "nose_gap": {"type": ["string", "null"]},
+                "opp_intercepted_by": {"type": ["string", "null"]},
+                "opp_kicker": {"type": ["string", "null"]},
+                "opp_passer": {"type": ["string", "null"]},
+                "opp_qb": {"type": ["string", "null"]},
+                "opp_rb": {"type": ["string", "null"]},
+                "opp_receiver": {"type": ["string", "null"]},
+                "opp_recovered_by": {"type": ["string", "null"]},
+                "opp_returner": {"type": ["string", "null"]},
+                "opp_rusher": {"type": ["string", "null"]},
+                "opp_tackler1": {"type": ["string", "null"]},
+                "opp_tackler2": {"type": ["string", "null"]},
+                "opp_team": {"type": ["string", "null"]},
+                "pass_category": {"type": ["string", "null"]},
+                "pass_pro": {"type": ["string", "null"]},
+                "passer_jersey": {"type": ["string", "null"]},
+                "passer_name": {"type": ["string", "null"]},
+                "play_name": {"type": ["string", "null"]},
+                "receiver_jersey": {"type": ["string", "null"]},
+                "receiver_name": {"type": ["string", "null"]},
+                "recovered_by_jersey": {"type": ["string", "null"]},
+                "recovered_by_name": {"type": ["string", "null"]},
+                "ret_yards": {"type": ["integer", "null"]},
+                "returner_jersey": {"type": ["string", "null"]},
+                "returner_name": {"type": ["string", "null"]},
+                "rusher_jersey": {"type": ["string", "null"]},
+                "rusher_name": {"type": ["string", "null"]},
+                "series": {"type": ["string", "null"]},
+                "set": {"type": ["string", "null"]},
+                "situation": {"type": ["string", "null"]},
+                "tackler1_jersey": {"type": ["string", "null"]},
+                "tackler1_name": {"type": ["string", "null"]},
+                "tackler2_jersey": {"type": ["string", "null"]},
+                "tackler2_name": {"type": ["string", "null"]},
+                "target": {"type": ["string", "null"]},
+                "team": {"type": ["string", "null"]},
             },
             "required": ["odk", "off_form", "def_front", "gain_loss", "motion_dir", "result_label"],
         },
@@ -136,6 +204,7 @@ Important rules:
 - If the focus team cannot be identified confidently from the clip, keep the summary neutral and mention the uncertainty in notes instead of guessing the team.
 - Prioritize a practical tagging output that can later be exported into a Hudl-style playlist sheet.
 - QTR and outcome.result are especially important. Fill them when they are visible or directly inferable from the clip context; otherwise leave them null.
+- Populate hudl_fields broadly when a value is visible, directly inferable, or present in the spreadsheet context. Leave fields null when they are not reliable.
 """.strip()
 
     if run_notes:
@@ -153,7 +222,7 @@ For play_by_play mode:
 - Keep the summary factual and event-driven instead of trend-oriented.
 - Add notes only for directly relevant coaching or execution details.
 - Populate game_state as completely as the video allows without guessing.
-- Use hudl_fields as export-ready aliases for the most useful playlist columns.
+- Use hudl_fields as export-ready aliases for Hudl playlist columns.
 """.strip()
 
     if breakdown_payload:
@@ -180,6 +249,14 @@ Field guidance:
 - offense.formation and hudl_fields.off_form should usually match.
 - defense.front and hudl_fields.def_front should usually match.
 - hudl_fields.odk: use Hudl-style one-letter code where possible: "O" offense, "D" defense, "K" kicking game / special teams.
+- hudl_fields.personnel, off_form, off_str, backfield, off_play, bs_concept, play_dir, play_type: offense/play tags. Use standard coach terminology and null when not visible.
+- hudl_fields.def_front, def_str, coverage, blitz, pressure, box, nose_number, nose_gap: defensive tags. Use null when the front/coverage/player alignment cannot be observed reliably.
+- hudl_fields.pass_category, pass_pro, pass_zone, target, deep_shot: pass-game tags. target should be route/area/receiver jersey only if visible, not a guessed player name.
+- hudl_fields.motion and motion_dir: include pre-snap motion and direction only when visible.
+- hudl_fields.penalty and pen_yards: fill only when an official signal, on-screen data, or breakdown context makes it clear.
+- hudl_fields.kick_yards, ret_yards, kicker_jersey, returner_jersey: fill on special teams only when visible or directly inferable.
+- Player jersey fields may be filled when the jersey number is clearly visible. Player name fields must stay null unless the name is directly visible in video/broadcast/scorebug or present in spreadsheet context.
+- Team/opponent fields may be filled only if the team identity is clear from game context or spreadsheet context.
 - hudl_fields.gain_loss: signed integer mirror of outcome.yards_gained when known.
 - hudl_fields.result_label: short export label aligned with outcome.result.
 - Never invent player names, jersey numbers, or drive numbers.
@@ -624,6 +701,7 @@ Task:
 - Use Markdown headings and bullet points.
 - Keep it practical for coaches.
 - Only state tendencies that are supported by the provided data.
+- Any numeric claim, ratio, or count must match the structured data exactly. If no exact verified number is available, omit the number.
 - If evidence is thin or incomplete, say so clearly.
 
 Section instructions:
@@ -633,18 +711,36 @@ Structured data:
 {payload_text}
 """.strip()
 
+    verified_facts = {
+        "completed_play_count": analyses_payload["completed_play_count"],
+        "focus_team_offense": {
+            "play_count": analyses_payload["focus_team_tendencies"]["offense"]["play_count"],
+            "top_play_types": analyses_payload["focus_team_tendencies"]["offense"]["top_play_types"],
+        },
+        "focus_team_defense": {
+            "play_count": analyses_payload["focus_team_tendencies"]["defense"]["play_count"],
+            "top_play_types": analyses_payload["focus_team_tendencies"]["defense"]["top_play_types"],
+            "top_fronts": analyses_payload["focus_team_tendencies"]["defense"]["top_fronts"],
+            "top_coverages": analyses_payload["focus_team_tendencies"]["defense"]["top_coverages"],
+        },
+        "focus_team_special_teams": {
+            "play_count": analyses_payload["focus_team_tendencies"]["special_teams"]["play_count"],
+            "top_play_types": analyses_payload["focus_team_tendencies"]["special_teams"]["top_play_types"],
+            "top_results": analyses_payload["focus_team_tendencies"]["special_teams"]["top_results"],
+        },
+    }
+
     offense_prompt = build_section_prompt(
         "Offense Summary",
         """
 - Focus on offensive tendencies of the focus team.
+- Use the provided offense aggregate counts as the primary source of truth for frequencies and ratios.
 - Highlight formations, motions, run/pass indicators, direction, concepts and recurring outcomes.
 - End with 3-5 actionable coaching takeaways for defending this offense.
 """.strip(),
         {
             "completed_play_count": analyses_payload["completed_play_count"],
-            "top_play_types": analyses_payload["top_play_types"],
-            "top_formations": analyses_payload["top_formations"],
-            "top_results": analyses_payload["top_results"],
+            "focus_team_offense": analyses_payload["focus_team_tendencies"]["offense"],
             "offensive_samples": analyses_payload["offensive_samples"],
         },
     )
@@ -652,21 +748,36 @@ Structured data:
         "Defense Summary",
         """
 - Focus on defensive tendencies of the focus team.
+- Use the provided defense aggregate counts as the primary source of truth for frequencies and ratios.
 - Highlight fronts, coverage, blitz, pressure, alignment patterns and recurring reactions.
 - End with 3-5 actionable coaching takeaways for attacking this defense.
 """.strip(),
         {
             "completed_play_count": analyses_payload["completed_play_count"],
-            "top_coverages": analyses_payload["top_coverages"],
-            "top_results": analyses_payload["top_results"],
+            "focus_team_defense": analyses_payload["focus_team_tendencies"]["defense"],
             "defensive_samples": analyses_payload["defensive_samples"],
+        },
+    )
+    special_teams_prompt = build_section_prompt(
+        "Special Teams Summary",
+        """
+- Focus on special teams tendencies of the focus team.
+- Use the provided special teams aggregate counts as the primary source of truth for frequencies and ratios.
+- Highlight kick, return, punt, field goal or extra point patterns only when the structured data supports them.
+- Be explicit when ownership is unclear and prefer neutral wording over inference.
+- End with 2-4 actionable coaching takeaways for special teams.
+""".strip(),
+        {
+            "completed_play_count": analyses_payload["completed_play_count"],
+            "focus_team_special_teams": analyses_payload["focus_team_tendencies"]["special_teams"],
+            "special_teams_samples": analyses_payload["special_teams_samples"],
         },
     )
     situational_prompt = build_section_prompt(
         "Situational Summary",
         """
 - Focus on situational tendencies.
-- Analyze down, distance, field position, hash, special or notable situations if available.
+- Analyze down, distance, field position, hash and notable situations if available.
 - Identify any specific tendencies that appear in those situations.
 - End with 3-5 situation-based coaching points.
 """.strip(),
@@ -682,6 +793,7 @@ Structured data:
 
     offense_text = (_generate_with_retry(client, model_name, offense_prompt, config).text or "").strip()
     defense_text = (_generate_with_retry(client, model_name, defense_prompt, config).text or "").strip()
+    special_teams_text = (_generate_with_retry(client, model_name, special_teams_prompt, config).text or "").strip()
     situational_text = (_generate_with_retry(client, model_name, situational_prompt, config).text or "").strip()
 
     final_prompt = f"""
@@ -696,26 +808,34 @@ Focus team:
 Included analysis runs:
 {runs_text}
 
-Use the following three prepared section summaries and merge them into one cohesive German scouting report.
+Use the following prepared section summaries and merge them into one cohesive German scouting report.
 
 Requirements:
 - Write in German.
 - Use Markdown headings and bullet points.
 - Keep the tone compact, clear and coach-oriented.
+- Treat the verified aggregate facts below as authoritative. Any numeric claim in the final report must match them exactly, otherwise omit the number.
 - Include these sections:
   1. Executive Summary
   2. Offense
   3. Defense
-  4. Situational Tendencies
-  5. Top Coaching Points
-  6. Data Gaps / Confidence
+    4. Special Teams
+    5. Situational Tendencies
+    6. Top Coaching Points
+    7. Data Gaps / Confidence
 - Do not invent facts beyond the summaries.
+
+Verified aggregate facts:
+{json.dumps(verified_facts, ensure_ascii=True)}
 
 Offense Summary:
 {offense_text}
 
 Defense Summary:
 {defense_text}
+
+Special Teams Summary:
+{special_teams_text}
 
 Situational Summary:
 {situational_text}
@@ -731,6 +851,7 @@ Situational Summary:
         "sections": {
             "offense": offense_text,
             "defense": defense_text,
+            "special_teams": special_teams_text,
             "situational": situational_text,
         },
     }

@@ -45,6 +45,9 @@ Arbeitsreihenfolge:
 - [x] Spiele einem Gegner zuordnen
 - [x] Metadaten fuer Spiel erfassen
 - [x] Upload-Workflow fuer Videos oder Clips
+- [ ] SAFV-Spielreferenz (`external_game_id`) am Spiel pflegen
+- [ ] SAFV-Lineup als spielbezogenen Roster-Snapshot importieren
+- [ ] SAFV-Gamesheet als offiziellen Spielkontext und Event-Log importieren
 - [ ] Import des minimalen Hudl-Formats
 - [x] Import des erweiterten Hudl-Formats
 - [ ] Export in minimales Gegnerformat
@@ -89,6 +92,8 @@ Arbeitsreihenfolge:
 - [ ] verlinkte Beispielclips im Report
 - [ ] Report-Generierung aus mehreren Spielen eines Gegners
 - [x] Report-JSON und HTML strikt trennen
+- [ ] offizielle SAFV-Spielkontextdaten im Report sichtbar machen
+- [ ] Quellenstufen fuer `official`, `ai_inferred` und `manually_reviewed` im Report ausweisen
 
 ## Phase 6a: Self-Scouting und Auto-Tagging
 

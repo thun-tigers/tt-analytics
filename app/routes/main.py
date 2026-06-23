@@ -1,15 +1,16 @@
 import re
+import csv
 from collections import Counter
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from datetime import datetime
 from itertools import groupby
-from io import BytesIO
+from io import BytesIO, StringIO
 from pathlib import Path
 import threading
 from uuid import uuid4
 
 import markdown as md
-from flask import Blueprint, current_app, flash, make_response, redirect, render_template, request, send_file, session, url_for
+from flask import Blueprint, current_app, flash, jsonify, make_response, redirect, render_template, request, send_file, session, url_for
 from sqlalchemy import or_
 from sqlalchemy.orm.exc import ObjectDeletedError
 from werkzeug.utils import secure_filename
@@ -17,7 +18,7 @@ from weasyprint import HTML
 
 from ..extensions import db
 from ..models import AnalysisRun, Clip, ClipAnalysis, ClipMetadata, Game, Report, ReportRun, Season, Team
-from ..services.breakdown_import import CANONICAL_BREAKDOWN_COLUMNS, build_breakdown_xlsx_bytes, normalize_breakdown_row, parse_xlsx_rows
+from ..services.breakdown_import import HUDL_IMPORT_COLUMNS, build_breakdown_xlsx_bytes, normalize_breakdown_row, parse_xlsx_rows
 from ..services.gemini_analysis import analyze_clip_with_gemini, synthesize_play_by_play_report_with_gemini, synthesize_report_with_gemini
 
 bp = Blueprint("main", __name__)
@@ -32,6 +33,7 @@ REPORT_TYPE_LABELS = {
 
 REPORT_STATUS_LABELS = {
     "draft": "Entwurf",
+    "generating": "Wird generiert",
     "completed": "Abgeschlossen",
     "completed_with_errors": "Abgeschlossen mit Fehlern",
     "running": "Laeuft",
@@ -75,6 +77,83 @@ PLAY_VALUE_LABELS = {
     "Interception": "Interception",
     "Sack": "Sack",
     "Fumble": "Fumble",
+}
+
+HUDL_FIELD_KEYS = {
+    "ODK": "odk",
+    "PERSONNEL": "personnel",
+    "OFF FORM": "off_form",
+    "OFF STR": "off_str",
+    "BACKFIELD": "backfield",
+    "OFF PLAY": "off_play",
+    "B/S CONCEPT": "bs_concept",
+    "PLAY DIR": "play_dir",
+    "PLAY TYPE": "play_type",
+    "GN/LS": "gain_loss",
+    "RESULT": "result_label",
+    "DEF FRONT": "def_front",
+    "COVERAGE": "coverage",
+    "BLITZ": "blitz",
+    "PENALTY": "penalty",
+    "GAP": "gap",
+    "PASS ZONE": "pass_zone",
+    "MOTION": "motion",
+    "MOTION DIR": "motion_dir",
+    "EFF": "eff",
+    "&10": "and_10",
+    "2 MIN": "two_min",
+    "BOX": "box",
+    "COMMENTS": "comments",
+    "DEEP SHOT": "deep_shot",
+    "DEF STR": "def_str",
+    "FIB": "fib",
+    "FLD ZN": "field_zone",
+    "INTERCEPTED BY JERSEY": "intercepted_by_jersey",
+    "INTERCEPTED BY NAME": "intercepted_by_name",
+    "KEY PLAYER JERSEY": "key_player_jersey",
+    "KEY PLAYER NAME": "key_player_name",
+    "KICK YARDS": "kick_yards",
+    "KICKER JERSEY": "kicker_jersey",
+    "KICKER NAME": "kicker_name",
+    "NOSE #": "nose_number",
+    "NOSE GAP": "nose_gap",
+    "OPP INTERCEPTED BY": "opp_intercepted_by",
+    "OPP KICKER": "opp_kicker",
+    "OPP PASSER": "opp_passer",
+    "OPP QB": "opp_qb",
+    "OPP RB": "opp_rb",
+    "OPP RECEIVER": "opp_receiver",
+    "OPP RECOVERED BY": "opp_recovered_by",
+    "OPP RETURNER": "opp_returner",
+    "OPP RUSHER": "opp_rusher",
+    "OPP TACKLER1": "opp_tackler1",
+    "OPP TACKLER2": "opp_tackler2",
+    "OPP TEAM": "opp_team",
+    "PASS CATEGORY": "pass_category",
+    "PASS PRO": "pass_pro",
+    "PASSER JERSEY": "passer_jersey",
+    "PASSER NAME": "passer_name",
+    "PEN YARDS": "pen_yards",
+    "PLAY NAME": "play_name",
+    "PRESSURE": "pressure",
+    "RECEIVER JERSEY": "receiver_jersey",
+    "RECEIVER NAME": "receiver_name",
+    "RECOVERED BY JERSEY": "recovered_by_jersey",
+    "RECOVERED BY NAME": "recovered_by_name",
+    "RET YARDS": "ret_yards",
+    "RETURNER JERSEY": "returner_jersey",
+    "RETURNER NAME": "returner_name",
+    "RUSHER JERSEY": "rusher_jersey",
+    "RUSHER NAME": "rusher_name",
+    "SERIES": "series",
+    "SET": "set",
+    "SITUATION": "situation",
+    "TACKLER1 JERSEY": "tackler1_jersey",
+    "TACKLER1 NAME": "tackler1_name",
+    "TACKLER2 JERSEY": "tackler2_jersey",
+    "TACKLER2 NAME": "tackler2_name",
+    "TARGET": "target",
+    "TEAM": "team",
 }
 
 
@@ -336,6 +415,44 @@ def _analysis_first(primary, fallback=None, placeholders=None):
     return _empty_if_placeholder(fallback, placeholders=placeholders)
 
 
+def _first_breakdown_value(breakdown, *keys):
+    for key in keys:
+        value = _empty_if_placeholder((breakdown or {}).get(key))
+        if value:
+            return value
+    return ""
+
+
+def _breakdown_odk_to_focus_side(raw_odk):
+    odk = _empty_if_placeholder(raw_odk)
+    if not odk:
+        return ""
+
+    normalized = odk.strip().upper()
+    if normalized.startswith("O"):
+        return "Offense"
+    if normalized.startswith("D"):
+        return "Defense"
+    if normalized.startswith("K") or normalized.startswith("S"):
+        return "Special Teams"
+    return ""
+
+
+def _side_to_hudl_odk(value):
+    normalized = _normalize_bucket_value(value, "side_of_ball")
+    if normalized == "Offense":
+        return "O"
+    if normalized == "Defense":
+        return "D"
+    if normalized == "Special Teams":
+        return "K"
+
+    raw = str(value or "").strip().upper()
+    if raw in {"O", "D", "K"}:
+        return raw
+    return ""
+
+
 def _ordinal_down(value):
     down = _safe_int(value)
     if down == 1:
@@ -376,7 +493,7 @@ def _build_export_summary(play, breakdown):
     focus_team = _empty_if_placeholder(play.get("focus_team"))
     side_of_ball = _analysis_first(
         "" if play.get("side_of_ball") == "Unknown" else play.get("side_of_ball"),
-        breakdown.get("SIDE"),
+        _first_breakdown_value(breakdown, "SIDE") or _breakdown_odk_to_focus_side(_first_breakdown_value(breakdown, "ODK")),
     )
     result = _analysis_first(
         "" if play.get("result") == "Unknown" else play.get("result"),
@@ -451,6 +568,7 @@ def _build_play_entry(run, analysis):
     offense = payload.get("offense") or {}
     defense = payload.get("defense") or {}
     outcome = payload.get("outcome") or {}
+    hudl_fields = payload.get("hudl_fields") or {}
     breakdown = _breakdown_payload_for_analysis(analysis)
 
     game_state = payload.get("game_state") or {}
@@ -471,17 +589,17 @@ def _build_play_entry(run, analysis):
     explosive = isinstance(yards_gained, int) and abs(yards_gained) >= 12
     summary = _analysis_first(payload.get("summary"), breakdown.get("SUMMARY"), placeholders={"Keine Zusammenfassung"})
     play_type = _analysis_first(payload.get("play_type"), breakdown_play_type)
-    side_of_ball = _analysis_first(payload.get("side_of_ball"), breakdown.get("SIDE"))
+    side_of_ball = _analysis_first(payload.get("side_of_ball"), _first_breakdown_value(breakdown, "SIDE") or _breakdown_odk_to_focus_side(_first_breakdown_value(breakdown, "ODK")))
     result = _analysis_first(outcome.get("result"), breakdown.get("RESULT"))
-    formation = _analysis_first(offense.get("formation"), breakdown.get("FORMATION"))
+    formation = _analysis_first(offense.get("formation"), _first_breakdown_value(breakdown, "FORMATION", "OFF FORM"))
     personnel = _analysis_first(offense.get("personnel"), breakdown.get("PERSONNEL"))
     motion = _analysis_first(offense.get("motion"), breakdown.get("MOTION"))
     play_direction = _analysis_first(offense.get("play_direction"), breakdown.get("PLAY DIR"))
-    front = _analysis_first(defense.get("front"), breakdown.get("FRONT"))
+    front = _analysis_first(defense.get("front"), _first_breakdown_value(breakdown, "FRONT", "DEF FRONT"))
     coverage = _analysis_first(defense.get("coverage"), breakdown.get("COVERAGE"))
     blitz = _analysis_first(defense.get("blitz"), breakdown.get("BLITZ"))
     pressure = _analysis_first(defense.get("pressure"), breakdown.get("PRESSURE"))
-    field_zone = _analysis_first(outcome.get("field_zone"), breakdown.get("FIELD ZONE"))
+    field_zone = _analysis_first(outcome.get("field_zone"), _first_breakdown_value(breakdown, "FIELD ZONE", "FLD ZN"))
     situation = _analysis_first(outcome.get("situation"), breakdown.get("SITUATION"))
 
     return {
@@ -520,6 +638,7 @@ def _build_play_entry(run, analysis):
         "situation": _stringify(situation),
         "notes": [note.strip() for note in (payload.get("notes") or []) if str(note).strip()],
         "explosive": explosive,
+        "hudl_fields": hudl_fields,
         "breakdown": breakdown,
         "sort_key": (
             _safe_int(quarter) or 99,
@@ -643,37 +762,45 @@ def _build_breakdown_export_rows(report, plays):
         yards_gained = play.get("yards_gained")
         export_summary = _build_export_summary(play, breakdown) or _analysis_first(
             summary,
-            breakdown.get("SUMMARY"),
+            _first_breakdown_value(breakdown, "COMMENTS", "SUMMARY"),
             placeholders={"Keine Zusammenfassung"},
         )
-        rows.append(
+        side_of_ball = _analysis_first(
+            "" if play.get("side_of_ball") == "Unknown" else play.get("side_of_ball"),
+            _first_breakdown_value(breakdown, "SIDE") or _breakdown_odk_to_focus_side(_first_breakdown_value(breakdown, "ODK")),
+        )
+        gain_loss = yards_gained if yards_gained is not None else _empty_if_placeholder(_first_breakdown_value(breakdown, "GN/LS", "YDS"))
+        hudl_fields = play.get("hudl_fields") or {}
+        row = {header: breakdown.get(header, "") for header in HUDL_IMPORT_COLUMNS}
+        for header, key in HUDL_FIELD_KEYS.items():
+            value = _empty_if_placeholder(hudl_fields.get(key))
+            if value:
+                row[header] = value
+
+        row.update(
             {
                 "PLAY #": breakdown.get("PLAY #") or play.get("external_play_number") or play.get("play_number") or "",
+                "ODK": _first_breakdown_value(breakdown, "ODK") or _empty_if_placeholder(hudl_fields.get("odk")) or _side_to_hudl_odk(side_of_ball),
                 "QTR": _analysis_first("" if play.get("quarter") == "n/a" else play.get("quarter"), breakdown.get("QTR")),
-                "SERIES": _analysis_first("" if play.get("series") == "n/a" else play.get("series"), breakdown.get("SERIES")),
                 "DN": _analysis_first("" if play.get("down") == "n/a" else play.get("down"), breakdown.get("DN")),
                 "DIST": _analysis_first("" if play.get("distance") == "n/a" else play.get("distance"), breakdown.get("DIST")),
-                "HASH": _analysis_first("" if play.get("hash") == "n/a" else play.get("hash"), breakdown.get("HASH")),
                 "YARD LN": _analysis_first("" if play.get("field_position") == "n/a" else play.get("field_position"), breakdown.get("YARD LN")),
-                "SIDE": _analysis_first("" if play.get("side_of_ball") == "Unknown" else play.get("side_of_ball"), breakdown.get("SIDE")),
+                "HASH": _analysis_first("" if play.get("hash") == "n/a" else play.get("hash"), breakdown.get("HASH")),
                 "PLAY TYPE": _analysis_first("" if play.get("play_type") == "Unknown" else play.get("play_type"), breakdown.get("PLAY TYPE")),
                 "RESULT": _analysis_first("" if play.get("result") == "Unknown" else play.get("result"), breakdown.get("RESULT")),
-                "YDS": yards_gained if yards_gained is not None else _empty_if_placeholder(breakdown.get("YDS")),
-                "FORMATION": _analysis_first("" if play.get("formation") == "n/a" else play.get("formation"), breakdown.get("FORMATION")),
+                "GN/LS": gain_loss,
                 "PERSONNEL": _analysis_first("" if play.get("personnel") == "n/a" else play.get("personnel"), breakdown.get("PERSONNEL")),
-                "MOTION": _analysis_first(motion, breakdown.get("MOTION")),
+                "OFF FORM": _analysis_first("" if play.get("formation") == "n/a" else play.get("formation"), _first_breakdown_value(breakdown, "OFF FORM", "FORMATION")),
                 "PLAY DIR": _analysis_first(play_direction, breakdown.get("PLAY DIR")),
-                "FRONT": _analysis_first("" if play.get("front") == "n/a" else play.get("front"), breakdown.get("FRONT")),
+                "MOTION": _analysis_first(motion, breakdown.get("MOTION")),
+                "DEF FRONT": _analysis_first("" if play.get("front") == "n/a" else play.get("front"), _first_breakdown_value(breakdown, "DEF FRONT", "FRONT")),
                 "COVERAGE": _analysis_first("" if play.get("coverage") == "n/a" else play.get("coverage"), breakdown.get("COVERAGE")),
                 "BLITZ": _analysis_first("" if play.get("blitz") == "n/a" else play.get("blitz"), breakdown.get("BLITZ")),
                 "PRESSURE": _analysis_first("" if play.get("pressure") == "n/a" else play.get("pressure"), breakdown.get("PRESSURE")),
-                "SUMMARY": export_summary,
-                "CLIP #": play.get("clip_number") or "",
-                "GAME": report.title if report.report_type == "self_scout" else play.get("game") or "",
-                "FOCUS TEAM": play.get("focus_team") or report.focus_team.name,
-                "ANALYSIS MODE": play.get("analysis_mode") or "",
+                "COMMENTS": export_summary,
             }
         )
+        rows.append(row)
     return rows
 
 
@@ -729,6 +856,76 @@ def _collect_tendency_metrics(plays):
     }
 
 
+def _build_report_data_quality(plays):
+    total = len(plays)
+    breakdown_play_type_count = 0
+    breakdown_result_count = 0
+    breakdown_side_count = 0
+
+    for play in plays:
+        breakdown = play.get("breakdown") or {}
+        if _empty_if_placeholder(breakdown.get("PLAY TYPE")):
+            breakdown_play_type_count += 1
+        if _empty_if_placeholder(breakdown.get("RESULT")):
+            breakdown_result_count += 1
+        if _empty_if_placeholder(breakdown.get("SIDE")) or _empty_if_placeholder(breakdown.get("ODK")):
+            breakdown_side_count += 1
+
+    def percentage(count):
+        if not total:
+            return 0
+        return round((count / total) * 100)
+
+    warnings = []
+    play_type_coverage = percentage(breakdown_play_type_count)
+    result_coverage = percentage(breakdown_result_count)
+
+    if total and breakdown_play_type_count == 0:
+        warnings.append(
+            {
+                "severity": "danger",
+                "title": "Run/Pass basiert nur auf AI-Erkennung",
+                "detail": "Im importierten Breakdown ist kein einziges Feld `PLAY TYPE` gepflegt. Die Spielzugtypen im Report stammen daher komplett aus der AI-Klassifikation der Clips.",
+            }
+        )
+    elif total and play_type_coverage < 50:
+        warnings.append(
+            {
+                "severity": "warning",
+                "title": "Spielzugtypen nur teilweise abgesichert",
+                "detail": f"Nur {play_type_coverage}% der Plays haben einen gepflegten Breakdown-Wert fuer `PLAY TYPE`. Run/Pass-Tendenzen sind deshalb nur eingeschraenkt belastbar.",
+            }
+        )
+
+    if total and breakdown_result_count == 0:
+        warnings.append(
+            {
+                "severity": "warning",
+                "title": "Ergebnisse sind AI-only",
+                "detail": "Im importierten Breakdown ist kein Feld `RESULT` gepflegt. Outcome-Aussagen wie Complete, Incomplete, Gain oder Touchdown sind daher nicht extern abgesichert.",
+            }
+        )
+    elif total and result_coverage < 50:
+        warnings.append(
+            {
+                "severity": "warning",
+                "title": "Ergebnisdaten nur teilweise abgesichert",
+                "detail": f"Nur {result_coverage}% der Plays haben einen gepflegten Breakdown-Wert fuer `RESULT`. Ergebnis-Tendenzen koennen dadurch verzerrt sein.",
+            }
+        )
+
+    return {
+        "play_count": total,
+        "breakdown_play_type_count": breakdown_play_type_count,
+        "breakdown_play_type_coverage_pct": play_type_coverage,
+        "breakdown_result_count": breakdown_result_count,
+        "breakdown_result_coverage_pct": result_coverage,
+        "breakdown_side_count": breakdown_side_count,
+        "breakdown_side_coverage_pct": percentage(breakdown_side_count),
+        "warnings": warnings,
+    }
+
+
 def _collect_report_metrics(report):
     plays = _collect_report_plays(report)
     notes = []
@@ -744,6 +941,7 @@ def _collect_report_metrics(report):
     metrics = {
         "analyzed_clips": len(plays),
         "notes": notes[:12],
+        "data_quality": _build_report_data_quality(plays),
         "play_tendencies": overall_metrics,
         "focus_team_tendencies": {
             "all": _collect_tendency_metrics(focus_all_plays),
@@ -754,6 +952,100 @@ def _collect_report_metrics(report):
     }
     metrics.update(overall_metrics)
     return metrics
+
+
+def _build_breakdown_import_preview(game, normalized_rows, mapping_mode, import_offset):
+    clips = Clip.query.filter_by(game_id=game.id).order_by(Clip.clip_number.asc(), Clip.created_at.asc()).all()
+    ordered_clips = sorted(clips, key=lambda clip: (clip.clip_number is None, clip.clip_number or 0, clip.id))
+
+    play_numbers = sorted({_safe_int(row.get("PLAY #")) for row in normalized_rows if _safe_int(row.get("PLAY #")) is not None})
+    missing_play_numbers = []
+    if play_numbers:
+        present = set(play_numbers)
+        missing_play_numbers = [number for number in range(1, play_numbers[-1] + 1) if number not in present]
+
+    recommendation = None
+    recommendation_reason = None
+    if missing_play_numbers:
+        recommendation = "row_order"
+        if play_numbers and play_numbers[0] != 1:
+            recommendation_reason = (
+                f"Die erste vorhandene PLAY #-Nummer ist {play_numbers[0]} statt 1. "
+                "Das spricht fuer geloeschte oder neu nummerierte Clips und damit fuer Mapping nach Zeilenreihenfolge."
+            )
+        else:
+            recommendation_reason = (
+                "Im Nummernraum von PLAY # gibt es Luecken. "
+                "Wenn Clips nach Loeschungen neu durchnummeriert wurden, ist Mapping nach Zeilenreihenfolge meist belastbarer."
+            )
+    else:
+        recommendation = "play_number"
+        recommendation_reason = "Keine Luecken in PLAY # erkannt. Striktes Mapping ueber PLAY # ist fuer diesen Import plausibel."
+
+    preview_rows = []
+    matched = 0
+    unmatched = 0
+
+    for row_index, row in enumerate(normalized_rows, start=1):
+        play_number = str(row.get("PLAY #", "")).strip()
+        play_number_int = _safe_int(play_number)
+        clip = None
+        expected_clip_number = None
+
+        if mapping_mode == "row_order":
+            clip_index = row_index - 1 + import_offset
+            if 0 <= clip_index < len(ordered_clips):
+                clip = ordered_clips[clip_index]
+                expected_clip_number = clip.clip_number
+        else:
+            expected_clip_number = play_number_int + import_offset if play_number_int is not None else None
+            if expected_clip_number is not None:
+                clip = next((item for item in ordered_clips if item.clip_number == expected_clip_number), None)
+
+        if clip:
+            matched += 1
+        else:
+            unmatched += 1
+
+        if len(preview_rows) < 12:
+            preview_rows.append(
+                {
+                    "row_index": row_index,
+                    "play_number": play_number or "-",
+                    "odk": row.get("ODK") or "-",
+                    "quarter": row.get("QTR") or "-",
+                    "down": row.get("DN") or "-",
+                    "distance": row.get("DIST") or "-",
+                    "yard_line": row.get("YARD LN") or "-",
+                    "expected_clip_number": expected_clip_number if expected_clip_number is not None else "-",
+                    "clip_filename": clip.original_filename if clip else None,
+                }
+            )
+
+    return {
+        "mapping_mode": mapping_mode,
+        "import_offset": import_offset,
+        "total_rows": len(normalized_rows),
+        "matched": matched,
+        "unmatched": unmatched,
+        "missing_play_numbers": missing_play_numbers,
+        "recommendation": recommendation,
+        "recommendation_reason": recommendation_reason,
+        "rows": preview_rows,
+    }
+
+
+def _render_game_clips_page(game, breakdown_preview=None):
+    clips = Clip.query.filter_by(game_id=game.id).order_by(Clip.clip_number.asc(), Clip.created_at.asc()).all()
+    runs = AnalysisRun.query.filter_by(game_id=game.id).order_by(AnalysisRun.created_at.desc()).all()
+    return render_template(
+        "clips.html",
+        game=game,
+        clips=clips,
+        runs=runs,
+        breakdown_preview=breakdown_preview,
+        analysis_mode_labels=ANALYSIS_MODE_LABELS,
+    )
 
 
 def _render_report_markdown(text):
@@ -902,6 +1194,9 @@ def _build_pdf_response(report, metrics):
 
 def _build_report_payload(report):
     plays = _collect_report_plays(report)
+    focus_offense_plays = []
+    focus_defense_plays = []
+    focus_special_plays = []
     completed_play_count = 0
     play_types = Counter()
     sides = Counter()
@@ -914,6 +1209,7 @@ def _build_report_payload(report):
     results = Counter()
     offensive_samples = []
     defensive_samples = []
+    special_teams_samples = []
     situational_samples = []
     down_counts = Counter()
     distance_buckets = Counter()
@@ -925,6 +1221,14 @@ def _build_report_payload(report):
 
     for play in plays:
         completed_play_count += 1
+        side = play["side_of_ball"]
+        if side == "Offense":
+            focus_offense_plays.append(play)
+        elif side == "Defense":
+            focus_defense_plays.append(play)
+        elif side == "Special Teams":
+            focus_special_plays.append(play)
+
         _count_bucket(play_types, play["play_type"], "play_type")
         _count_bucket(sides, play["side_of_ball"], "side_of_ball")
         _count_bucket(formations, play["formation"], "formation")
@@ -973,11 +1277,13 @@ def _build_report_payload(report):
             "notes": play["notes"],
         }
 
-        side = play["side_of_ball"].lower()
-        if "off" in side and len(offensive_samples) < 18:
+        side_key = play["side_of_ball"].lower()
+        if "off" in side_key and len(offensive_samples) < 18:
             offensive_samples.append(sample)
-        elif "def" in side and len(defensive_samples) < 18:
+        elif "def" in side_key and len(defensive_samples) < 18:
             defensive_samples.append(sample)
+        elif "special" in side_key and len(special_teams_samples) < 18:
+            special_teams_samples.append(sample)
 
         if (play["down"] != "n/a" or play["distance"] != "n/a" or play["situation"] != "n/a") and len(situational_samples) < 18:
             situational_samples.append(sample)
@@ -1005,6 +1311,10 @@ def _build_report_payload(report):
     for summary in play_view["quarter_summaries"][:8]:
         quarter_summaries.append(summary)
 
+    focus_offense_metrics = _collect_tendency_metrics(focus_offense_plays)
+    focus_defense_metrics = _collect_tendency_metrics(focus_defense_plays)
+    focus_special_metrics = _collect_tendency_metrics(focus_special_plays)
+
     return {
         "report_title": report.title,
         "report_type": report.report_type,
@@ -1023,8 +1333,14 @@ def _build_report_payload(report):
         "top_distances": distance_buckets.most_common(10),
         "top_hashes": hash_counts.most_common(10),
         "top_field_positions": field_position_counts.most_common(10),
+        "focus_team_tendencies": {
+            "offense": focus_offense_metrics,
+            "defense": focus_defense_metrics,
+            "special_teams": focus_special_metrics,
+        },
         "offensive_samples": offensive_samples,
         "defensive_samples": defensive_samples,
+        "special_teams_samples": special_teams_samples,
         "situational_samples": situational_samples,
         "play_by_play": {
             "completed_play_count": completed_play_count,
@@ -1265,6 +1581,39 @@ def _analyze_single_clip_for_run(app, run_id, clip_id):
                 return True
 
             return _analyze_clip_for_run(clip, run)[0]
+        finally:
+            db.session.remove()
+
+
+def _run_report_generation(app, report_id):
+    with app.app_context():
+        try:
+            db.session.rollback()
+            report = db.session.get(Report, report_id)
+            if not report:
+                return
+
+            payload = _build_report_payload(report)
+            play_count = payload["completed_play_count"]
+            if play_count == 0:
+                report.status = "draft"
+                db.session.commit()
+                return
+
+            if report.report_type == "play_by_play":
+                result = synthesize_play_by_play_report_with_gemini(current_app.config, report, payload["play_by_play"])
+            else:
+                result = synthesize_report_with_gemini(current_app.config, report, payload)
+
+            report.summary = result["report_text"]
+            report.status = "completed"
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            report = db.session.get(Report, report_id)
+            if report:
+                report.status = "failed"
+                db.session.commit()
         finally:
             db.session.remove()
 
@@ -1729,15 +2078,39 @@ def report_breakdown_xlsx(report_id):
     report = Report.query.get_or_404(report_id)
     plays = _collect_report_plays(report)
     rows = _build_breakdown_export_rows(report, plays)
-    workbook = build_breakdown_xlsx_bytes(rows, headers=CANONICAL_BREAKDOWN_COLUMNS)
+    workbook = build_breakdown_xlsx_bytes(rows, headers=HUDL_IMPORT_COLUMNS)
     safe_title = re.sub(r"[^A-Za-z0-9_-]+", "_", (report.title or f"report_{report.id}").strip()).strip("_")
-    filename = f"{safe_title or f'report_{report.id}'}_breakdown.xlsx"
+    filename = f"{safe_title or f'report_{report.id}'}_hudl_import.xlsx"
     return send_file(
         BytesIO(workbook),
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         as_attachment=True,
         download_name=filename,
     )
+
+
+@bp.route("/reports/<int:report_id>/hudl.csv")
+def report_hudl_csv(report_id):
+    login_redirect = require_login("main.reports")
+    if login_redirect:
+        return login_redirect
+
+    report = Report.query.get_or_404(report_id)
+    plays = _collect_report_plays(report)
+    rows = _build_breakdown_export_rows(report, plays)
+
+    output = StringIO()
+    writer = csv.DictWriter(output, fieldnames=HUDL_IMPORT_COLUMNS, extrasaction="ignore", lineterminator="\r\n")
+    writer.writeheader()
+    for row in rows:
+        writer.writerow({header: row.get(header, "") for header in HUDL_IMPORT_COLUMNS})
+
+    safe_title = re.sub(r"[^A-Za-z0-9_-]+", "_", (report.title or f"report_{report.id}").strip()).strip("_")
+    filename = f"{safe_title or f'report_{report.id}'}_hudl_import.csv"
+    response = make_response(output.getvalue())
+    response.headers["Content-Type"] = "text/csv; charset=utf-8"
+    response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
 
 
 @bp.route("/reports/<int:report_id>/generate", methods=["POST"])
@@ -1747,6 +2120,10 @@ def generate_report(report_id):
         return login_redirect
 
     report = Report.query.get_or_404(report_id)
+    if report.status == "generating":
+        flash("Die Report-Generierung läuft bereits im Hintergrund.", "warning")
+        return redirect(url_for("main.report_detail", report_id=report.id))
+
     payload = _build_report_payload(report)
     play_count = payload["completed_play_count"]
     if play_count == 0:
@@ -1757,14 +2134,10 @@ def generate_report(report_id):
         report.status = "generating"
         db.session.commit()
 
-        if report.report_type == "play_by_play":
-            result = synthesize_play_by_play_report_with_gemini(current_app.config, report, payload["play_by_play"])
-        else:
-            result = synthesize_report_with_gemini(current_app.config, report, payload)
-        report.summary = result["report_text"]
-        report.status = "completed"
-        db.session.commit()
-        flash(f"AI-Report wurde aus {play_count} Play-Analysen generiert.", "success")
+        app = current_app._get_current_object()
+        worker = threading.Thread(target=_run_report_generation, args=(app, report.id), daemon=True)
+        worker.start()
+        flash(f"Die Report-Generierung wurde aus {play_count} Play-Analysen im Hintergrund gestartet.", "success")
     except Exception as exc:
         db.session.rollback()
         report = Report.query.get(report_id)
@@ -1801,6 +2174,8 @@ def game_clips(game_id):
         uploaded_files = request.files.getlist("clips")
         uploaded_files = [file for file in uploaded_files if file and file.filename]
         if not uploaded_files:
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({"error": "Bitte mindestens eine Clip-Datei auswählen."}), 400
             flash("Bitte mindestens eine Clip-Datei auswählen.", "danger")
             return redirect(url_for("main.game_clips", game_id=game.id))
 
@@ -1831,18 +2206,15 @@ def game_clips(game_id):
             created += 1
 
         db.session.commit()
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({
+                "created": created,
+                "redirect_url": url_for("main.game_clips", game_id=game.id),
+            })
         flash(f"{created} Clip(s) wurden hochgeladen.", "success")
         return redirect(url_for("main.game_clips", game_id=game.id))
 
-    clips = Clip.query.filter_by(game_id=game.id).order_by(Clip.clip_number.asc(), Clip.created_at.asc()).all()
-    runs = AnalysisRun.query.filter_by(game_id=game.id).order_by(AnalysisRun.created_at.desc()).all()
-    return render_template(
-        "clips.html",
-        game=game,
-        clips=clips,
-        runs=runs,
-        analysis_mode_labels=ANALYSIS_MODE_LABELS,
-    )
+    return _render_game_clips_page(game)
 
 
 @bp.route("/games/<int:game_id>/breakdown", methods=["POST"])
@@ -1852,6 +2224,12 @@ def import_breakdown(game_id):
         return login_redirect
 
     game = Game.query.get_or_404(game_id)
+    import_offset = _safe_int(request.form.get("import_offset")) or 0
+    mapping_mode = (request.form.get("mapping_mode") or "play_number").strip()
+    if mapping_mode not in {"play_number", "row_order"}:
+        mapping_mode = "play_number"
+    confirm_missing_plays = request.form.get("confirm_missing_plays") == "on"
+    preview_only = request.form.get("preview_only") == "1"
     upload = request.files.get("breakdown_file")
     if not upload or not upload.filename:
         flash("Bitte eine Breakdown-Datei auswählen.", "danger")
@@ -1863,25 +2241,65 @@ def import_breakdown(game_id):
         flash("Breakdown-Datei konnte nicht gelesen werden.", "danger")
         return redirect(url_for("main.game_clips", game_id=game.id))
 
+    normalized_rows = [normalize_breakdown_row(row) for row in rows]
+    if preview_only:
+        breakdown_preview = _build_breakdown_import_preview(game, normalized_rows, mapping_mode, import_offset)
+        return _render_game_clips_page(game, breakdown_preview=breakdown_preview)
+
+    play_numbers = sorted({_safe_int(row.get("PLAY #")) for row in normalized_rows if _safe_int(row.get("PLAY #")) is not None})
+    missing_play_numbers = []
+    if play_numbers:
+        present = set(play_numbers)
+        missing_play_numbers = [number for number in range(1, play_numbers[-1] + 1) if number not in present]
+
+    if missing_play_numbers and not confirm_missing_plays:
+        preview = ", ".join(str(number) for number in missing_play_numbers[:10])
+        if len(missing_play_numbers) > 10:
+            preview += ", ..."
+        flash(
+            f"Breakdown enthält Lücken in PLAY # ({preview}). Bitte bestätige zuerst, dass diese Plays im aktuellen Clip-Export fehlen dürfen.",
+            "warning",
+        )
+        return redirect(url_for("main.game_clips", game_id=game.id))
+
     matched = 0
     unmatched = 0
 
-    for row in rows:
-        normalized_row = normalize_breakdown_row(row)
+    existing_clips = Clip.query.filter_by(game_id=game.id).all()
+    existing_clip_ids = [clip.id for clip in existing_clips]
+    if existing_clip_ids:
+        ClipMetadata.query.filter(
+            ClipMetadata.clip_id.in_(existing_clip_ids),
+            ClipMetadata.source_kind == "breakdown_excel",
+        ).delete(synchronize_session=False)
+        for clip in existing_clips:
+            clip.external_play_number = None
+
+    ordered_clips = sorted(existing_clips, key=lambda clip: (clip.clip_number is None, clip.clip_number or 0, clip.id))
+
+    for row_index, normalized_row in enumerate(normalized_rows, start=1):
         play_number = str(normalized_row.get("PLAY #", "")).strip()
-        if not play_number:
+        clip = None
+
+        if mapping_mode == "row_order":
+            clip_index = row_index - 1 + import_offset
+            if 0 <= clip_index < len(ordered_clips):
+                clip = ordered_clips[clip_index]
+        else:
+            if not play_number:
+                unmatched += 1
+                continue
+            play_number_int = _safe_int(play_number)
+            clip_number = play_number_int + import_offset if play_number_int is not None else None
+            clip = Clip.query.filter_by(game_id=game.id, clip_number=clip_number if clip_number is not None else None).first()
+            if not clip:
+                clip = Clip.query.filter_by(game_id=game.id, external_play_number=play_number).first()
+
+        if not clip:
             unmatched += 1
             continue
 
-        clip_number = _safe_int(play_number)
-        clip = Clip.query.filter_by(game_id=game.id, clip_number=clip_number if clip_number is not None else None).first()
-        if not clip:
-            clip = Clip.query.filter_by(game_id=game.id, external_play_number=play_number).first()
-        if not clip:
-            unmatched += 1
-            continue
-
-        clip.external_play_number = play_number
+        clip.external_play_number = play_number or None
         metadata = ClipMetadata.query.filter_by(clip_id=clip.id, source_kind="breakdown_excel").first()
         if not metadata:
             metadata = ClipMetadata(clip_id=clip.id, source_kind="breakdown_excel", payload_json=normalized_row)
@@ -1891,7 +2309,10 @@ def import_breakdown(game_id):
         matched += 1
 
     db.session.commit()
-    flash(f"Breakdown importiert: {matched} Play(s) zugeordnet, {unmatched} ohne Zuordnung.", "success" if matched else "warning")
+    flash(
+        f"Breakdown importiert: {matched} Play(s) zugeordnet, {unmatched} ohne Zuordnung, Modus {mapping_mode}, Offset {import_offset:+d}.",
+        "success" if matched else "warning",
+    )
     return redirect(url_for("main.game_clips", game_id=game.id))
 
 

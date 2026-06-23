@@ -31,14 +31,27 @@
 <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
     <section class="xl:col-span-1 bg-white dark:bg-slate-800 rounded-[1.75rem] shadow border border-slate-200 dark:border-slate-700 p-6 xl:sticky xl:top-28 h-fit">
         <h2 class="text-xl font-semibold text-slate-900 dark:text-white mb-4">Clips hochladen</h2>
-        <form method="post" action="{{ url_for('main.game_clips', game_id=game.id) }}" enctype="multipart/form-data" class="space-y-4">
+        <form id="clip-upload-form" method="post" action="{{ url_for('main.game_clips', game_id=game.id) }}" enctype="multipart/form-data" class="space-y-4">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <div>
                 <label for="clips" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Dateien</label>
                 <input id="clips" name="clips" type="file" multiple accept="video/*" class="block w-full text-sm text-slate-700 dark:text-slate-200 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900/40 dark:file:text-indigo-300 dark:bg-slate-700 dark:border dark:border-slate-600 rounded-lg">
                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Für den MVP gehen wir davon aus, dass die Spiele bereits in einzelne Spielzüge aufgeteilt sind.</p>
             </div>
-            <button type="submit" class="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white font-semibold rounded-lg transition shadow-md hover:shadow-lg text-sm">
+            <div id="clip-upload-progress" class="hidden rounded-2xl border border-indigo-200 bg-indigo-50/80 px-4 py-4 text-sm text-indigo-900 dark:border-indigo-900/50 dark:bg-indigo-950/30 dark:text-indigo-100">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <div id="clip-upload-progress-label" class="font-semibold">Upload startet...</div>
+                        <div id="clip-upload-progress-detail" class="mt-1 text-xs text-indigo-700 dark:text-indigo-200">0 / 0 Clips übertragen</div>
+                    </div>
+                    <div id="clip-upload-progress-percent" class="text-sm font-semibold">0%</div>
+                </div>
+                <div class="mt-3 h-2 overflow-hidden rounded-full bg-indigo-100 dark:bg-slate-800">
+                    <div id="clip-upload-progress-bar" class="h-full w-0 rounded-full bg-indigo-600 transition-[width] duration-150 dark:bg-indigo-400"></div>
+                </div>
+            </div>
+            <div id="clip-upload-error" class="hidden rounded-2xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200"></div>
+            <button id="clip-upload-submit" type="submit" class="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white font-semibold rounded-lg transition shadow-md hover:shadow-lg text-sm">
                 <i class="bi bi-upload mr-2"></i>Clips hochladen
             </button>
         </form>
@@ -52,10 +65,95 @@
                     <input id="breakdown_file" name="breakdown_file" type="file" accept=".xlsx" class="block w-full text-sm text-slate-700 dark:text-slate-200 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900/40 dark:file:text-indigo-300 dark:bg-slate-700 dark:border dark:border-slate-600 rounded-lg">
                     <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Play-by-Play-Daten werden als zusätzlicher Kontext pro Clip gespeichert. Kanonische Schlüsselfelder: <code>PLAY #</code>, <code>QTR</code>, <code>SERIES</code>, <code>DN</code>, <code>DIST</code>, <code>HASH</code>, <code>YARD LN</code>, <code>PLAY TYPE</code>. Varianten wie <code>DOWN</code>, <code>DISTANCE</code> oder <code>DRIVE</code> werden beim Import normalisiert.</p>
                 </div>
-                <button type="submit" class="w-full py-2.5 px-4 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition text-sm font-medium">
-                    <i class="bi bi-file-earmark-spreadsheet mr-2"></i>Breakdown importieren
-                </button>
+                <div>
+                    <label for="mapping_mode" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Matching-Modus</label>
+                    <select id="mapping_mode" name="mapping_mode" class="block w-full text-sm text-slate-700 dark:text-slate-200 dark:bg-slate-700 dark:border dark:border-slate-600 rounded-lg px-3 py-2.5">
+                        <option value="play_number" selected>Nach PLAY # mappen</option>
+                        <option value="row_order">Nach Zeilenreihenfolge mappen</option>
+                    </select>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Standard ist ein striktes Mapping über <code>PLAY #</code>. Wenn Hudl nach Löschungen Lücken im Nummernraum hat, kann alternativ nach Reihenfolge der Zeilen gemappt werden.</p>
+                </div>
+                <div>
+                    <label for="import_offset" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Clip-Offset</label>
+                    <input id="import_offset" name="import_offset" type="number" value="0" class="block w-full text-sm text-slate-700 dark:text-slate-200 dark:bg-slate-700 dark:border dark:border-slate-600 rounded-lg px-3 py-2.5">
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Verschiebt das Matching zwischen <code>PLAY #</code> und Clip-Nummer. Beispiel: Wenn <code>Play 2</code> zu <code>Clip 1</code> gehört, verwende <code>-1</code>. Ein Re-Import ersetzt die bisherigen Breakdown-Zuordnungen dieses Spiels.</p>
+                </div>
+                <label class="flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/80 dark:bg-amber-950/20 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+                    <input type="checkbox" name="confirm_missing_plays" class="mt-1 h-4 w-4 rounded border-amber-300 text-indigo-600 focus:ring-indigo-500">
+                    <span>Ich bestätige, dass fehlende <code>PLAY #</code>-Nummern im aktuellen Clip-Export fehlen dürfen. Bei Lücken im Nummernraum wird der Import sonst blockiert.</span>
+                </label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button type="submit" name="preview_only" value="1" class="w-full py-2.5 px-4 border border-indigo-300 dark:border-indigo-700 rounded-lg text-indigo-700 dark:text-indigo-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition text-sm font-medium">
+                        <i class="bi bi-eye mr-2"></i>Import-Vorschau
+                    </button>
+                    <button type="submit" class="w-full py-2.5 px-4 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition text-sm font-medium">
+                        <i class="bi bi-file-earmark-spreadsheet mr-2"></i>Breakdown importieren
+                    </button>
+                </div>
             </form>
+
+            {% if breakdown_preview %}
+            <div class="mt-5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 p-4">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h4 class="text-sm font-semibold text-slate-900 dark:text-white">Import-Vorschau</h4>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Modus {{ breakdown_preview.mapping_mode }} · Offset {{ '%+d'|format(breakdown_preview.import_offset) }} · {{ breakdown_preview.matched }} Zuordnungen · {{ breakdown_preview.unmatched }} ohne Zuordnung</p>
+                    </div>
+                    <span class="inline-flex items-center gap-2 rounded-full bg-white dark:bg-slate-800 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                        <i class="bi bi-table"></i>
+                        <span>{{ breakdown_preview.total_rows }} Zeilen</span>
+                    </span>
+                </div>
+                {% if breakdown_preview.recommendation %}
+                <div class="mt-3 rounded-xl border {{ 'border-amber-200 dark:border-amber-900/40 bg-amber-50/80 dark:bg-amber-950/20' if breakdown_preview.recommendation == 'row_order' else 'border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/80 dark:bg-emerald-950/20' }} px-3 py-3 text-xs">
+                    <div class="font-semibold {{ 'text-amber-900 dark:text-amber-100' if breakdown_preview.recommendation == 'row_order' else 'text-emerald-900 dark:text-emerald-100' }}">
+                        Empfehlung: {{ 'Nach Zeilenreihenfolge mappen' if breakdown_preview.recommendation == 'row_order' else 'Nach PLAY # mappen' }}
+                    </div>
+                    <div class="mt-1 {{ 'text-amber-800 dark:text-amber-200' if breakdown_preview.recommendation == 'row_order' else 'text-emerald-800 dark:text-emerald-200' }}">
+                        {{ breakdown_preview.recommendation_reason }}
+                    </div>
+                </div>
+                {% endif %}
+                {% if breakdown_preview.missing_play_numbers %}
+                <div class="mt-3 rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/80 dark:bg-amber-950/20 px-3 py-2 text-xs text-amber-900 dark:text-amber-100">
+                    <span class="font-semibold">Fehlende PLAY # erkannt:</span>
+                    {{ breakdown_preview.missing_play_numbers[:12] | join(', ') }}{% if breakdown_preview.missing_play_numbers|length > 12 %}, ...{% endif %}
+                </div>
+                {% endif %}
+                <div class="mt-4 overflow-x-auto">
+                    <table class="min-w-full text-xs text-left text-slate-600 dark:text-slate-300">
+                        <thead>
+                            <tr class="border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
+                                <th class="py-2 pr-3">Zeile</th>
+                                <th class="py-2 pr-3">PLAY #</th>
+                                <th class="py-2 pr-3">ODK</th>
+                                <th class="py-2 pr-3">QTR</th>
+                                <th class="py-2 pr-3">DN</th>
+                                <th class="py-2 pr-3">DIST</th>
+                                <th class="py-2 pr-3">YARD LN</th>
+                                <th class="py-2 pr-3">Clip</th>
+                                <th class="py-2">Datei</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in breakdown_preview.rows %}
+                            <tr class="border-b border-slate-100 dark:border-slate-800/80">
+                                <td class="py-2 pr-3">{{ row.row_index }}</td>
+                                <td class="py-2 pr-3">{{ row.play_number }}</td>
+                                <td class="py-2 pr-3">{{ row.odk }}</td>
+                                <td class="py-2 pr-3">{{ row.quarter }}</td>
+                                <td class="py-2 pr-3">{{ row.down }}</td>
+                                <td class="py-2 pr-3">{{ row.distance }}</td>
+                                <td class="py-2 pr-3">{{ row.yard_line }}</td>
+                                <td class="py-2 pr-3">{{ row.expected_clip_number }}</td>
+                                <td class="py-2">{{ row.clip_filename or 'Keine Zuordnung' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </section>
 
@@ -193,4 +291,160 @@
         {% endif %}
     </section>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+(() => {
+    const form = document.getElementById('clip-upload-form');
+    const input = document.getElementById('clips');
+    const csrfTokenInput = form ? form.querySelector('input[name="csrf_token"]') : null;
+    const submitButton = document.getElementById('clip-upload-submit');
+    const progressCard = document.getElementById('clip-upload-progress');
+    const progressLabel = document.getElementById('clip-upload-progress-label');
+    const progressDetail = document.getElementById('clip-upload-progress-detail');
+    const progressPercent = document.getElementById('clip-upload-progress-percent');
+    const progressBar = document.getElementById('clip-upload-progress-bar');
+    const errorBox = document.getElementById('clip-upload-error');
+
+    if (!form || !input) {
+        return;
+    }
+
+    const formatBytes = (bytes) => {
+        if (!bytes) {
+            return '0 MB';
+        }
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    };
+
+    const formatPercent = (loadedBytes, totalBytes) => {
+        if (!totalBytes) {
+            return '0%';
+        }
+
+        const percent = (loadedBytes / totalBytes) * 100;
+        if (percent > 0 && percent < 1) {
+            return '<1%';
+        }
+
+        return `${Math.min(100, Math.round(percent))}%`;
+    };
+
+    const setProgress = ({
+        currentFileName,
+        currentIndex,
+        totalFiles,
+        uploadedBytes,
+        totalBytes,
+        phase,
+    }) => {
+        const completedFiles = currentIndex;
+        progressLabel.textContent = phase === 'saving'
+            ? `Clip ${currentIndex + 1} wird gespeichert...`
+            : `Clip ${currentIndex + 1} von ${totalFiles}: ${currentFileName}`;
+        progressDetail.textContent = `${completedFiles} / ${totalFiles} Clips übertragen · ${formatBytes(uploadedBytes)} / ${formatBytes(totalBytes)}`;
+        progressPercent.textContent = formatPercent(uploadedBytes, totalBytes);
+        progressBar.style.width = `${Math.min(100, totalBytes ? (uploadedBytes / totalBytes) * 100 : 0)}%`;
+    };
+
+    const uploadSingleFile = (file, currentIndex, totalFiles, completedBytes, totalBytes) => new Promise((resolve, reject) => {
+        const request = new XMLHttpRequest();
+        const formData = new FormData();
+        formData.append('csrf_token', csrfTokenInput ? csrfTokenInput.value : '');
+        formData.append('clips', file, file.name);
+
+        request.open('POST', form.action, true);
+        request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+        request.upload.addEventListener('progress', (progressEvent) => {
+            const currentLoaded = progressEvent.lengthComputable ? progressEvent.loaded : 0;
+            const uploadedBytes = completedBytes + currentLoaded;
+            setProgress({
+                currentFileName: file.name,
+                currentIndex,
+                totalFiles,
+                uploadedBytes,
+                totalBytes,
+                phase: 'uploading',
+            });
+        });
+
+        request.addEventListener('load', () => {
+            if (request.status >= 200 && request.status < 300) {
+                const uploadedBytes = completedBytes + (file.size || 0);
+                setProgress({
+                    currentFileName: file.name,
+                    currentIndex: currentIndex + 1,
+                    totalFiles,
+                    uploadedBytes,
+                    totalBytes,
+                    phase: 'saving',
+                });
+                resolve();
+                return;
+            }
+
+            let errorMessage = 'Der Upload konnte nicht abgeschlossen werden.';
+            try {
+                const payload = JSON.parse(request.responseText);
+                if (payload && payload.error) {
+                    errorMessage = payload.error;
+                }
+            } catch (error) {
+                // Keep default message when the response is not JSON.
+            }
+
+            reject(new Error(errorMessage));
+        });
+
+        request.addEventListener('error', () => {
+            reject(new Error('Netzwerkfehler beim Upload.'));
+        });
+
+        request.send(formData);
+    });
+
+    form.addEventListener('submit', async (event) => {
+        const files = Array.from(input.files || []).filter((file) => file && file.name);
+        if (!files.length) {
+            return;
+        }
+
+        event.preventDefault();
+        const totalBytes = files.reduce((sum, file) => sum + (file.size || 0), 0);
+
+        submitButton.disabled = true;
+        submitButton.classList.add('opacity-70', 'cursor-not-allowed');
+        errorBox.classList.add('hidden');
+        errorBox.textContent = '';
+        progressCard.classList.remove('hidden');
+        progressLabel.textContent = 'Upload vorbereitet';
+        progressDetail.textContent = `0 / ${files.length} Clips übertragen`;
+        progressPercent.textContent = '0%';
+        progressBar.style.width = '0%';
+
+        try {
+            let completedBytes = 0;
+            for (const [currentIndex, file] of files.entries()) {
+                await uploadSingleFile(file, currentIndex, files.length, completedBytes, totalBytes);
+                completedBytes += file.size || 0;
+            }
+
+            progressLabel.textContent = 'Upload abgeschlossen';
+            progressDetail.textContent = `${files.length} / ${files.length} Clips übertragen · ${formatBytes(totalBytes)} / ${formatBytes(totalBytes)}`;
+            progressPercent.textContent = '100%';
+            progressBar.style.width = '100%';
+            window.location.assign(window.location.href);
+        } catch (error) {
+            errorBox.textContent = error.message || 'Der Upload konnte nicht abgeschlossen werden.';
+            errorBox.classList.remove('hidden');
+            progressLabel.textContent = 'Upload fehlgeschlagen';
+            submitButton.disabled = false;
+            submitButton.classList.remove('opacity-70', 'cursor-not-allowed');
+        }
+    });
+})();
+</script>
 {% endblock %}
