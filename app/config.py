@@ -16,6 +16,7 @@ class Config:
     SSO_EXPECTED_AUDIENCE = os.environ.get("SSO_EXPECTED_AUDIENCE", "tt-analytics")
     SSO_AUTO_PROVISION_USERS = os.environ.get("SSO_AUTO_PROVISION_USERS", "true").lower() == "true"
     SSO_SYNC_ROLE = os.environ.get("SSO_SYNC_ROLE", "true").lower() == "true"
+    INTERNAL_API_SECRET = os.environ.get("INTERNAL_API_SECRET") or SSO_SHARED_SECRET
 
     AUTO_CREATE_DB = os.environ.get("AUTO_CREATE_DB", "true").lower() == "true"
     LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")

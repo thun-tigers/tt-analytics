@@ -27,6 +27,11 @@ def get_auth_login_url(next_page=None):
     return f"{auth_base_url}/"
 
 
+def get_auth_logout_url():
+    auth_base_url = current_app.config.get('AUTH_BASE_URL', 'http://localhost:8085').rstrip('/')
+    return f"{auth_base_url}/logout"
+
+
 @bp.route("/login", methods=["GET", "POST"])
 @limiter.limit("20/minute", methods=["POST"])
 def login():
@@ -45,8 +50,7 @@ def login():
 @bp.route("/logout", methods=["POST"])
 def logout():
     session.clear()
-    flash("Sie wurden abgemeldet.", "info")
-    return redirect(get_auth_login_url())
+    return redirect(get_auth_logout_url())
 
 
 @bp.route("/auth/sso")
@@ -87,10 +91,14 @@ def sso_login():
             return redirect(url_for("auth.login"))
         user = User(username=username, role=role, password_hash=generate_password_hash(secrets.token_hex(32)))
         db.session.add(user)
-        db.session.commit()
     elif current_app.config.get("SSO_SYNC_ROLE", True) and user.role != role:
         user.role = role
-        db.session.commit()
+
+    # Sync auth_user_id from SSO token
+    auth_user_id = payload.get("sub")
+    if auth_user_id:
+        user.auth_user_id = int(auth_user_id)
+    db.session.commit()
 
     session["user_id"] = user.id
     session["username"] = user.username

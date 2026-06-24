@@ -19,9 +19,15 @@
 
     <script>
         (function() {
-            const stored = localStorage.getItem('theme');
+            function readCookie(name) {
+                const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+                return match ? decodeURIComponent(match[1]) : null;
+            }
+            const stored = readCookie('tt_theme') || localStorage.getItem('theme') || 'system';
             const system = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-            if ((stored || system) === 'dark') document.documentElement.classList.add('dark');
+            const effective = stored === 'system' ? system : stored;
+            if (effective === 'dark') document.documentElement.classList.add('dark');
+            else document.documentElement.classList.remove('dark');
         })();
     </script>
 
@@ -77,8 +83,11 @@
                     {% if session.get('user_id') %}
                     <div class="flex items-center gap-3 pl-3 border-l border-slate-200 dark:border-slate-600">
                         <div class="hidden sm:block text-right">
-                            <div class="text-sm font-medium text-slate-900 dark:text-white">{{ session.get('username') }}</div>
-                            <div class="text-xs text-indigo-500 dark:text-indigo-400 capitalize">{{ session.get('user_role') }}</div>
+                            <div class="text-sm font-medium">{{ session.get('username') }}</div>
+                            <div class="text-xs text-indigo-500 dark:text-indigo-400 capitalize">{{ session.get('user_role', 'Mitglied') }}</div>
+                        </div>
+                        <div class="w-8 h-8 rounded-full bg-indigo-600 dark:bg-indigo-500 flex items-center justify-center text-white font-semibold text-sm">
+                            {{ session.get('username', '?')[0].upper() }}
                         </div>
                         <form method="POST" action="{{ url_for('auth.logout') }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -142,21 +151,62 @@
         const icon = document.getElementById('themeIcon');
         const mobileMenuToggle = document.getElementById('mobileMenuToggle');
         const mobileNav = document.getElementById('mobileNav');
-        function applyTheme(theme) {
-            if (theme === 'dark') {
+
+        function readCookie(name) {
+            const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+            return match ? decodeURIComponent(match[1]) : null;
+        }
+
+        function resolveTheme(preference) {
+            if (preference === 'system') {
+                return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            return preference;
+        }
+
+        function applyTheme(preference) {
+            const effective = resolveTheme(preference);
+            if (effective === 'dark') {
                 document.documentElement.classList.add('dark');
-                icon.className = 'bi bi-sun-fill';
             } else {
                 document.documentElement.classList.remove('dark');
+            }
+
+            if (preference === 'system') {
+                icon.className = 'bi bi-circle-half';
+                toggle.title = 'Design-Modus: System';
+            } else if (preference === 'dark') {
+                icon.className = 'bi bi-sun-fill';
+                toggle.title = 'Design-Modus: Dunkel';
+            } else {
                 icon.className = 'bi bi-moon-fill';
+                toggle.title = 'Design-Modus: Hell';
             }
         }
-        applyTheme(localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+
+        function saveTheme(preference) {
+            localStorage.setItem('theme', preference);
+            document.cookie = 'tt_theme=' + encodeURIComponent(preference) + '; path=/; max-age=31536000; samesite=lax';
+            applyTheme(preference);
+        }
+
+        let currentTheme = readCookie('tt_theme') || localStorage.getItem('theme') || 'system';
+        if (!['light', 'dark', 'system'].includes(currentTheme)) {
+            currentTheme = 'system';
+        }
+        applyTheme(currentTheme);
+
         toggle.addEventListener('click', () => {
-            const isDark = document.documentElement.classList.toggle('dark');
-            const theme = isDark ? 'dark' : 'light';
-            localStorage.setItem('theme', theme);
-            applyTheme(theme);
+            const order = ['system', 'light', 'dark'];
+            const idx = order.indexOf(currentTheme);
+            currentTheme = order[(idx + 1) % order.length];
+            saveTheme(currentTheme);
+        });
+
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            if (currentTheme === 'system') {
+                applyTheme('system');
+            }
         });
 
         if (mobileMenuToggle && mobileNav) {

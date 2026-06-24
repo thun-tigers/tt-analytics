@@ -12,6 +12,7 @@ class TimestampMixin:
 
 class User(TimestampMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    auth_user_id = db.Column(db.Integer, unique=True, nullable=True, index=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     role = db.Column(db.String(20), nullable=False, default="user")
     password_hash = db.Column(db.String(255), nullable=True)

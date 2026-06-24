@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from .config import Config
 from .extensions import db, limiter, migrate
 from .models import Season, Team
-from .routes import auth, main
+from .routes import auth, main, api
 
 
 def create_app(config_class=Config):
@@ -42,6 +42,7 @@ def create_app(config_class=Config):
 
     app.register_blueprint(main.bp)
     app.register_blueprint(auth.bp)
+    app.register_blueprint(api.bp)
 
     def generate_csrf_token():
         token = session.get("_csrf_token")
@@ -64,6 +65,8 @@ def create_app(config_class=Config):
 
     @app.before_request
     def csrf_protect():
+        if request.path.startswith("/api/internal/"):
+            return  # Interne Service-zu-Service APIs sind via Secret geschützt
         if request.method in ("POST", "PUT", "PATCH", "DELETE"):
             token = session.get("_csrf_token")
             if request.is_json:
@@ -92,6 +95,16 @@ def create_app(config_class=Config):
     def apply_schema_shims():
         inspector = inspect(db.engine)
         tables = set(inspector.get_table_names())
+
+        if "user" in tables:
+            columns = {col["name"] for col in inspector.get_columns("user")}
+            if "auth_user_id" not in columns:
+                dialect = db.engine.dialect.name
+                if dialect == "postgresql":
+                    db.session.execute(text('ALTER TABLE "user" ADD COLUMN auth_user_id INTEGER'))
+                else:
+                    db.session.execute(text("ALTER TABLE user ADD COLUMN auth_user_id INTEGER"))
+                db.session.commit()
 
         if "game" in tables:
             columns = {column["name"] for column in inspector.get_columns("game")}
