@@ -76,8 +76,13 @@ def sso_login():
         return redirect(url_for("auth.login"))
 
     username = (payload.get("username") or "").strip()
+    platform_role = (payload.get("platform_role") or "user").strip().lower()
     role = (payload.get("service_role") or payload.get("role") or "user").strip().lower()
-    if role not in ("admin", "user"):
+    permissions = payload.get("permissions") or []
+    if platform_role == "admin" or "*" in permissions:
+        role = "admin"
+        platform_role = "admin"
+    elif role not in ("admin", "user"):
         role = "user"
 
     if not username:
@@ -93,6 +98,7 @@ def sso_login():
         db.session.add(user)
     elif current_app.config.get("SSO_SYNC_ROLE", True) and user.role != role:
         user.role = role
+    user.platform_role = platform_role
 
     # Sync auth_user_id from SSO token
     auth_user_id = payload.get("sub")
@@ -103,6 +109,7 @@ def sso_login():
     session["user_id"] = user.id
     session["username"] = user.username
     session["user_role"] = user.role
+    session["platform_role"] = user.platform_role
     flash("Erfolgreich via SSO angemeldet.", "success")
     next_page = request.args.get("next")
     if next_page and is_safe_url(next_page):

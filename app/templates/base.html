@@ -31,7 +31,23 @@
         })();
     </script>
 
-    <style>* { font-family: 'Inter', sans-serif; }</style>
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        form :is(input[type='text'], input[type='email'], input[type='password'], input[type='search'], input[type='date'], input[type='time'], input[type='number'], select, textarea) {
+            padding-top: 0.55rem !important;
+            padding-bottom: 0.55rem !important;
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+            font-size: 0.875rem !important;
+            line-height: 1.25rem !important;
+            border-radius: 0.75rem !important;
+        }
+        form label {
+            font-size: 0.75rem;
+            line-height: 1rem;
+            margin-bottom: 0.25rem;
+        }
+    </style>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-slate-900 dark:text-slate-50">
 
