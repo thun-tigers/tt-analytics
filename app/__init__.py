@@ -104,7 +104,23 @@ def create_app(config_class=Config):
                     db.session.execute(text('ALTER TABLE "user" ADD COLUMN auth_user_id INTEGER'))
                 else:
                     db.session.execute(text("ALTER TABLE user ADD COLUMN auth_user_id INTEGER"))
-                db.session.commit()
+            if "service_role" not in columns:
+                if db.engine.dialect.name == "postgresql":
+                    db.session.execute(text('ALTER TABLE "user" ADD COLUMN service_role VARCHAR(20) NOT NULL DEFAULT \'user\''))
+                else:
+                    db.session.execute(text("ALTER TABLE user ADD COLUMN service_role VARCHAR(20) NOT NULL DEFAULT 'user'"))
+            if "platform_role" not in columns:
+                if db.engine.dialect.name == "postgresql":
+                    db.session.execute(text('ALTER TABLE "user" ADD COLUMN platform_role VARCHAR(20) NOT NULL DEFAULT \'user\''))
+                else:
+                    db.session.execute(text("ALTER TABLE user ADD COLUMN platform_role VARCHAR(20) NOT NULL DEFAULT 'user'"))
+            if "claims_json" not in columns:
+                json_default = "'{}'"
+                if db.engine.dialect.name == "postgresql":
+                    db.session.execute(text(f'ALTER TABLE "user" ADD COLUMN claims_json JSON NOT NULL DEFAULT {json_default}'))
+                else:
+                    db.session.execute(text(f"ALTER TABLE user ADD COLUMN claims_json TEXT NOT NULL DEFAULT {json_default}"))
+            db.session.commit()
 
         if "game" in tables:
             columns = {column["name"] for column in inspector.get_columns("game")}

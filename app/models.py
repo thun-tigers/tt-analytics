@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from .extensions import db
+from .authz import normalize_auth_payload
 
 
 class TimestampMixin:
@@ -15,8 +16,22 @@ class User(TimestampMixin, db.Model):
     auth_user_id = db.Column(db.Integer, unique=True, nullable=True, index=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     role = db.Column(db.String(20), nullable=False, default="user")
+    service_role = db.Column(db.String(20), nullable=False, default="user")
+    platform_role = db.Column(db.String(20), nullable=False, default="user")
     password_hash = db.Column(db.String(255), nullable=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+    claims_json = db.Column(db.JSON, nullable=False, default=dict)
+
+    def sync_from_sso_claims(self, payload):
+        auth = normalize_auth_payload(payload)
+        claims = auth["claims"]
+
+        self.auth_user_id = int(claims["sub"])
+        self.username = (claims.get("username") or self.username).strip()
+        self.role = auth["service_role"]
+        self.service_role = auth["service_role"]
+        self.platform_role = auth["platform_role"]
+        self.claims_json = claims
 
 
 class Team(TimestampMixin, db.Model):

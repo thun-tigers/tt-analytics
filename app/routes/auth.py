@@ -6,6 +6,7 @@ import jwt
 from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import generate_password_hash
 
+from ..authz import normalize_auth_payload
 from ..extensions import db, limiter
 from ..models import User
 
@@ -75,15 +76,10 @@ def sso_login():
         flash("Ungültiger SSO-Token.", "danger")
         return redirect(url_for("auth.login"))
 
-    username = (payload.get("username") or "").strip()
-    platform_role = (payload.get("platform_role") or "user").strip().lower()
-    role = (payload.get("service_role") or payload.get("role") or "user").strip().lower()
-    permissions = payload.get("permissions") or []
-    if platform_role == "admin" or "*" in permissions:
-        role = "admin"
-        platform_role = "admin"
-    elif role not in ("admin", "user"):
-        role = "user"
+    auth = normalize_auth_payload(payload)
+    claims = auth["claims"]
+    username = (claims.get("username") or "").strip()
+    role = auth["service_role"]
 
     if not username:
         flash("SSO-Token enthält keinen Benutzernamen.", "danger")
@@ -96,20 +92,20 @@ def sso_login():
             return redirect(url_for("auth.login"))
         user = User(username=username, role=role, password_hash=generate_password_hash(secrets.token_hex(32)))
         db.session.add(user)
-    elif current_app.config.get("SSO_SYNC_ROLE", True) and user.role != role:
-        user.role = role
-    user.platform_role = platform_role
-
-    # Sync auth_user_id from SSO token
-    auth_user_id = payload.get("sub")
-    if auth_user_id:
-        user.auth_user_id = int(auth_user_id)
+    if current_app.config.get("SSO_SYNC_ROLE", True):
+        user.sync_from_sso_claims(claims)
+    elif claims.get("sub"):
+        user.auth_user_id = int(claims["sub"])
     db.session.commit()
 
     session["user_id"] = user.id
+    session["auth_user_id"] = user.auth_user_id
     session["username"] = user.username
-    session["user_role"] = user.role
+    session["user_role"] = user.service_role
     session["platform_role"] = user.platform_role
+    session["memberships"] = auth["memberships"]
+    session["permissions"] = auth["permissions"]
+    session["claims_json"] = user.claims_json or {}
     flash("Erfolgreich via SSO angemeldet.", "success")
     next_page = request.args.get("next")
     if next_page and is_safe_url(next_page):
