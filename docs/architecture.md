@@ -243,9 +243,17 @@ Daraus folgen technische Anforderungen:
 
 Lokal:
 
-- `tt-auth` ueber `localhost:8085`
-- `tt-agenda` ueber `localhost:8086`
-- `tt-analytics` spaeter z. B. ueber `localhost:8087`
+- tt-auth ueber localhost:8085
+- tt-agenda ueber localhost:8086
+- tt-analytics ueber localhost:8087
+- tt-members ueber localhost:8088
+
+Beta:
+
+- auth-beta.thun-tigers.net
+- agenda-beta.thun-tigers.net
+- analytics-beta.thun-tigers.net
+- members-beta.thun-tigers.net
 
 Intern im Docker-Netz:
 
