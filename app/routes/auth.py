@@ -106,7 +106,6 @@ def sso_login():
     session["memberships"] = auth["memberships"]
     session["permissions"] = auth["permissions"]
     session["claims_json"] = user.claims_json or {}
-    flash("Erfolgreich via SSO angemeldet.", "success")
     next_page = request.args.get("next")
     if next_page and is_safe_url(next_page):
         return redirect(next_page)
