@@ -3,7 +3,7 @@ import secrets
 from urllib.parse import urlencode, urljoin, urlparse
 
 import jwt
-from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, current_app, flash, redirect, request, session, url_for
 from werkzeug.security import generate_password_hash
 
 from ..authz import normalize_auth_payload
@@ -22,10 +22,10 @@ def is_safe_url(target):
 
 def get_auth_login_url(next_page=None):
     auth_base_url = current_app.config.get('AUTH_BASE_URL', 'http://localhost:8085').rstrip('/')
+    query = {'next_service': 'tt-analytics'}
     if next_page:
-        query = urlencode({'next_service': 'tt-analytics', 'next': next_page})
-        return f"{auth_base_url}/?{query}"
-    return f"{auth_base_url}/"
+        query['next'] = next_page
+    return f"{auth_base_url}/?{urlencode(query)}"
 
 
 def get_auth_logout_url():
@@ -33,19 +33,12 @@ def get_auth_logout_url():
     return f"{auth_base_url}/logout"
 
 
-@bp.route("/login", methods=["GET", "POST"])
-@limiter.limit("20/minute", methods=["POST"])
+@bp.route("/login")
 def login():
     next_page = request.args.get("next")
     if next_page and not is_safe_url(next_page):
         next_page = None
-
-    auth_login_url = get_auth_login_url(next_page)
-    if request.method == "POST":
-        flash("Die Anmeldung erfolgt zentral über tt-auth.", "info")
-        return redirect(auth_login_url)
-
-    return render_template("login.html", auth_login_url=auth_login_url, next_page=next_page)
+    return redirect(get_auth_login_url(next_page))
 
 
 @bp.route("/logout", methods=["POST"])
