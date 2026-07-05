@@ -98,6 +98,7 @@ def sso_login():
     session["platform_role"] = user.platform_role
     session["memberships"] = auth["memberships"]
     session["permissions"] = auth["permissions"]
+    session["role_permissions"] = auth["role_permissions"]
     session["claims_json"] = user.claims_json or {}
     next_page = request.args.get("next")
     if next_page and is_safe_url(next_page):
