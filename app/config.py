@@ -7,7 +7,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = (
         os.environ.get("SQLALCHEMY_DATABASE_URI")
         or os.environ.get("DATABASE_URL")
-        or "sqlite:///analytics.db"
+        or "postgresql+psycopg://tt_analytics:tt_analytics_password@tt-postgres-analytics:5432/tt_analytics"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
@@ -16,6 +16,7 @@ class Config:
     SSO_EXPECTED_AUDIENCE = os.environ.get("SSO_EXPECTED_AUDIENCE", "tt-analytics")
     SSO_AUTO_PROVISION_USERS = os.environ.get("SSO_AUTO_PROVISION_USERS", "true").lower() == "true"
     SSO_SYNC_ROLE = os.environ.get("SSO_SYNC_ROLE", "true").lower() == "true"
+    TT_MEMBERS_INTERNAL_URL = os.environ.get("TT_MEMBERS_INTERNAL_URL", "http://tt-members:5000")
     INTERNAL_API_SECRET = os.environ.get("INTERNAL_API_SECRET") or SSO_SHARED_SECRET
 
     AUTO_CREATE_DB = os.environ.get("AUTO_CREATE_DB", "true").lower() == "true"

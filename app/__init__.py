@@ -1,5 +1,6 @@
 import logging
 import secrets
+import requests
 
 from dotenv import load_dotenv
 from flask import Flask, abort, request, session
@@ -62,6 +63,16 @@ def create_app(config_class=Config):
             "auth_base_url": auth_base_url,
             "auth_dashboard_url": f"{auth_base_url}/",
         }
+
+    @app.context_processor
+    def inject_pending_messages_count():
+        auth_user_id = session.get("auth_user_id")
+        if not auth_user_id:
+            user_id = session.get("user_id")
+            if user_id:
+                user = db.session.get(User, user_id)
+                auth_user_id = user.auth_user_id if user else None
+        return {"pending_messages_count": _fetch_pending_messages_count(app, auth_user_id)}
 
     @app.before_request
     def csrf_protect():
@@ -135,3 +146,27 @@ def create_app(config_class=Config):
             seed_defaults()
 
     return app
+
+
+def _fetch_pending_messages_count(app, auth_user_id):
+    if not auth_user_id:
+        return 0
+
+    members_base = app.config.get("TT_MEMBERS_INTERNAL_URL", "http://tt-members:5000").rstrip("/")
+    secret = app.config.get("INTERNAL_API_SECRET") or app.config.get("SSO_SHARED_SECRET") or app.config.get("SECRET_KEY")
+    if not secret:
+        return 0
+
+    try:
+        response = requests.get(
+            f"{members_base}/api/internal/messages/count",
+            params={"auth_user_id": auth_user_id},
+            headers={"X-TT-Internal-Secret": secret},
+            timeout=2,
+        )
+        if response.status_code != 200:
+            return 0
+        payload = response.json() or {}
+        return max(0, int(payload.get("pending_messages_count") or 0))
+    except Exception:
+        return 0
