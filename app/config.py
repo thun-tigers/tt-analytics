@@ -20,7 +20,7 @@ class Config:
     INTERNAL_API_SECRET = os.environ.get("INTERNAL_API_SECRET") or SSO_SHARED_SECRET
 
     AUTO_CREATE_DB = os.environ.get("AUTO_CREATE_DB", "true").lower() == "true"
-    LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+    LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
     UPLOAD_ROOT = os.environ.get("UPLOAD_ROOT", str(Path("instance") / "uploads"))
     MAX_CONTENT_LENGTH = int(os.environ.get("MAX_CONTENT_LENGTH", 2 * 1024 * 1024 * 1024))
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")

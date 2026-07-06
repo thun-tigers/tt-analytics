@@ -16,7 +16,7 @@ from .routes import auth, main, api
 def create_app(config_class=Config):
     load_dotenv()
 
-    log_level = getattr(logging, config_class.LOG_LEVEL, logging.INFO)
+    log_level = getattr(logging, config_class.LOG_LEVEL.upper(), logging.INFO)
     formatter = logging.Formatter(
         "[%(asctime)s +0000] [%(process)d] [%(levelname)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
