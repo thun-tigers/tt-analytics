@@ -50,6 +50,27 @@ def create_app(config_class=Config):
     app.register_blueprint(auth.bp)
     app.register_blueprint(api.bp)
 
+    # Zentrales UI-Layout aus tt-common
+    from tt_common import register_shared_ui
+    register_shared_ui(
+        app,
+        brand_label="Analytics",
+        brand_icon="bi-graph-up-arrow",
+        home_endpoint="main.index",
+        logout_endpoint="auth.logout",
+    )
+
+    @app.context_processor
+    def inject_current_user():
+        # Das geteilte Layout gated auf current_user; analytics arbeitet
+        # sessionbasiert, daher hier aus der Session ableiten.
+        if session.get("user_id"):
+            return {"current_user": {
+                "username": session.get("username"),
+                "role": session.get("user_role", "user"),
+            }}
+        return {"current_user": None}
+
     def generate_csrf_token():
         token = session.get("_csrf_token")
         if not token:
