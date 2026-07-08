@@ -5,6 +5,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     curl \
+    git \
     libcairo2 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
