@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from flask import Flask, abort, request, session
 from sqlalchemy import inspect, text
 from sqlalchemy.exc import IntegrityError
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .config import Config
 from .extensions import db, limiter, migrate
@@ -171,6 +172,7 @@ def create_app(config_class=Config):
             apply_schema_shims()
             seed_defaults()
 
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     return app
 
 

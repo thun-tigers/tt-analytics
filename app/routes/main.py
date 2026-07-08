@@ -161,7 +161,7 @@ HUDL_FIELD_KEYS = {
 
 def require_login(endpoint="main.index"):
     if not session.get("user_id"):
-        next_page = request.full_path if request.method == "GET" and request.query_string else request.path if request.method == "GET" else url_for(endpoint)
+        next_page = request.url if request.method == "GET" else url_for(endpoint)
         return redirect(url_for("auth.login", next=next_page))
     return None
 
