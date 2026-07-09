@@ -1,4 +1,5 @@
 {% extends "tt_common/base.html" %}
+{% from "tt_common/macros.html" import apps_link, nav_tab %}
 {% block title %}{% block page_title %}Tigers Analytics{% endblock %}{% endblock %}
 {% block brand_link %}{{ auth_dashboard_url }}{% endblock %}
 {% block brand_loggedout %}Analytics{% endblock %}
@@ -15,22 +16,14 @@
   ] %}
   {% for endpoint, icon, label in nav_items %}
   {% set is_active = request.endpoint == endpoint %}
-  <a href="{{ url_for(endpoint) }}" class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg transition
-    {{ 'bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 shadow-sm ring-1 ring-indigo-100 dark:ring-indigo-900' if is_active else 'text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-slate-900' }}">
-    <i class="bi {{ icon }}"></i>{{ label }}
-  </a>
+  {{ nav_tab(label, icon, is_active, url_for(endpoint)) }}
   {% endfor %}
 </div>
 {% endblock %}
 
-{# Apps-Grid-Icon (Desktop) #}
+{# Apps-Grid-Icon aus tt-common #}
 {% block appbar_actions %}
-<a href="{{ auth_dashboard_url }}" class="relative hidden lg:inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-indigo-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Apps">
-  <i class="bi bi-grid-fill"></i>
-  {% if pending_messages_count > 0 %}
-  <span class="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold">{{ pending_messages_count if pending_messages_count < 100 else '99+' }}</span>
-  {% endif %}
-</a>
+{{ apps_link(auth_dashboard_url, pending_messages_count) }}
 {% endblock %}
 
 {# User-Menue mit POST-Logout (inkl. CSRF-Token) #}
@@ -45,7 +38,7 @@
   </a>
   <form method="POST" action="{{ url_for('auth.logout') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <button type="submit" class="h-8 w-8 grid place-items-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition" title="Abmelden">
+    <button type="submit" class="h-11 w-11 lg:h-8 lg:w-8 grid place-items-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition" title="Abmelden" aria-label="Abmelden">
       <i class="bi bi-box-arrow-right"></i>
     </button>
   </form>

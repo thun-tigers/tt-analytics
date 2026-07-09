@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% from "tt_common/macros.html" import status_card %}
 
 {% set active_tab = "reports" %}
 {% block title %}Dashboard – Tigers Analytics{% endblock %}
@@ -37,26 +38,26 @@
             </div>
 
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:w-[25rem]">
-                <a href="{{ url_for('main.teams') }}" class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/85 dark:bg-slate-900/60 px-4 py-4 text-left transition hover:bg-white dark:hover:bg-slate-900">
+                {% call status_card('info', url_for('main.teams'), compact=True, extra_classes='px-4 py-4 text-left') %}
                     <div class="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">Schritt 1</div>
                     <div class="mt-1 text-sm font-semibold text-slate-900 dark:text-white">Teams pflegen</div>
                     <div class="mt-1 text-sm text-slate-500 dark:text-slate-400">Grundlage für Fokus, Gegner und Reports.</div>
-                </a>
-                <a href="{{ url_for('main.games') }}" class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/85 dark:bg-slate-900/60 px-4 py-4 text-left transition hover:bg-white dark:hover:bg-slate-900">
+                {% endcall %}
+                {% call status_card('info', url_for('main.games'), compact=True, extra_classes='px-4 py-4 text-left') %}
                     <div class="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">Schritt 2</div>
                     <div class="mt-1 text-sm font-semibold text-slate-900 dark:text-white">Spiele anlegen</div>
                     <div class="mt-1 text-sm text-slate-500 dark:text-slate-400">Spielmaterial und Clip-Basis strukturieren.</div>
-                </a>
-                <a href="{{ url_for('main.runs') }}" class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/85 dark:bg-slate-900/60 px-4 py-4 text-left transition hover:bg-white dark:hover:bg-slate-900">
+                {% endcall %}
+                {% call status_card('warning', url_for('main.runs'), compact=True, extra_classes='px-4 py-4 text-left') %}
                     <div class="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">Schritt 3</div>
                     <div class="mt-1 text-sm font-semibold text-slate-900 dark:text-white">Analyselaeufe starten</div>
                     <div class="mt-1 text-sm text-slate-500 dark:text-slate-400">Analyse pro Fokus-Team ausfuehren.</div>
-                </a>
-                <a href="{{ url_for('main.reports') }}" class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/85 dark:bg-slate-900/60 px-4 py-4 text-left transition hover:bg-white dark:hover:bg-slate-900">
+                {% endcall %}
+                {% call status_card('success', url_for('main.reports'), compact=True, extra_classes='px-4 py-4 text-left') %}
                     <div class="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">Schritt 4</div>
                     <div class="mt-1 text-sm font-semibold text-slate-900 dark:text-white">Berichte erstellen</div>
                     <div class="mt-1 text-sm text-slate-500 dark:text-slate-400">Tendenzen, Uebersicht und Export buendeln.</div>
-                </a>
+                {% endcall %}
             </div>
         </div>
     </div>
