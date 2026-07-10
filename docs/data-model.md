@@ -1,5 +1,9 @@
 # Datenmodell
 
+> **Hinweis:** Dieses Dokument beschreibt das **Zielmodell**. Der aktuelle Ist-Stand
+> (`app/models.py`, Version 0.1.16) implementiert den MVP-Schnitt (siehe unten) und weicht
+> in Feldnamen teilweise ab. Bekannte Abweichungen sind pro Modell mit **Ist:** markiert.
+
 ## Modellziel
 
 `tt-analytics` soll Gegner-Scouting und Self-Scouting mit demselben Kernmodell abbilden.
@@ -82,6 +86,9 @@ Felder:
 - `checksum`
 - `status`
 
+**Ist:** Nicht implementiert. Der aktuelle `Clip` hält Dateibezug direkt in `stored_filename`,
+`storage_path`, `original_filename`, `content_type`, `file_size_bytes` und `status`.
+
 ### `clip`
 
 Repraesentiert einen einzelnen Spielzug oder eine kleine Videoeinheit.
@@ -100,6 +107,11 @@ Felder:
 - `status`
 
 `external_play_number` mappt z. B. auf Hudl `PLAY #`.
+
+**Ist:** `Clip` verweist direkt auf `game_id` (kein `video_asset_id`) und speichert
+Dateibezug ueber `stored_filename` + `storage_path` (statt `storage_key`). `start_ms`,
+`end_ms`, `import_source` sind aktuell nicht implementiert. `content_type` und
+`file_size_bytes` existieren zusaetzlich.
 
 ### `clip_metadata`
 
@@ -225,6 +237,10 @@ Felder:
 - `single_game`
 - `multi_game_opponent`
 - `self_scout`
+
+**Ist:** `report_json`, `rendered_html`, `rendered_pdf_key` sind aktuell nicht als eigene
+Spalten implementiert. HTML- und PDF-Rendering laufen ueber die Report-Synthese-Pipeline
+und werden zur Laufzeit erzeugt (siehe `docs/report-structure.md`).
 
 ### `report_run`
 

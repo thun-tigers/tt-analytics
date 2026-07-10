@@ -21,24 +21,30 @@ Ziel ist eine AI-gestuetzte Spielanalyse fuer American Football:
 
 Aktiver Stack (Beta):
 
-- https://analytics-beta.thun-tigers.net
-- zentrale Anmeldung ueber https://auth-beta.thun-tigers.net
+- https://beta.thun-tigers.net/analytics/
+- zentrale Anmeldung ueber https://beta.thun-tigers.net/auth/
 - Launch ueber tt-auth mit SSO-Token
 
-Lokal im Gesamtstack:
+Lokal im Gesamtstack: Einstieg ueber Caddy-Reverse-Proxy auf `http://localhost:8080`.
 
-- tt-auth: http://localhost:8085
-- tt-agenda: http://localhost:8086
-- tt-analytics: http://localhost:8087
-- tt-members: http://localhost:8088
+- tt-auth: http://localhost:8080/auth/
+- tt-agenda: http://localhost:8080/agenda/
+- tt-analytics: http://localhost:8080/analytics/
+- tt-members: http://localhost:8080/members/
+- tt-attendance: http://localhost:8080/attendance/
+- tt-infra: http://localhost:8080/infra/
+
+Direkte Service-Ports 8084–8089 sind lokal weiterhin verfuegbar.
 
 Empfohlener Start lokal ueber tt-infra:
 
 ```bash
 cd ../tt-infra
-cp .env.example .env
-docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+./setup.sh
 ```
+
+Details zur Plattform-Konfiguration und zum Reverse-Proxy siehe
+`../tt-infra/docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md`.
 
 Die Doku fuer den ersten Architektur- und Produktentwurf liegt unter:
 
@@ -51,6 +57,7 @@ Die Doku fuer den ersten Architektur- und Produktentwurf liegt unter:
 - docs/hudl-reference.md
 - docs/play-analysis-schema.md
 - docs/report-structure.md
+- docs/safv-import.md
 
 ## Zielbild
 
