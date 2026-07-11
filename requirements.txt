@@ -13,4 +13,4 @@ reportlab==4.2.2
 WeasyPrint==62.3
 pydyf==0.10.0
 redis==5.2.1
-tt-common @ git+https://github.com/thun-tigers/tt-common@v0.1.17
+tt-common @ git+https://github.com/thun-tigers/tt-common@v0.1.19
