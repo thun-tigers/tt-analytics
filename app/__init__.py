@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .config import Config
+from .db_bootstrap import schema_setup_lock
 from .extensions import db, limiter, migrate
 from .models import Season, Team
 from .routes import auth, main, api
@@ -168,9 +169,10 @@ def create_app(config_class=Config):
 
     with app.app_context():
         if app.config.get("AUTO_CREATE_DB"):
-            db.create_all()
-            apply_schema_shims()
-            seed_defaults()
+            with schema_setup_lock(db.engine):
+                db.create_all()
+                apply_schema_shims()
+                seed_defaults()
 
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     return app
