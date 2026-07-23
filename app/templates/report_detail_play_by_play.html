@@ -58,7 +58,7 @@
 
 <div class="grid grid-cols-1 xl:grid-cols-4 gap-4 mb-6">
     <div class="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-5">
-        <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Spielzuege</div>
+        <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Spielzüge</div>
         <div class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">{{ play_view.highlights.total_plays }}</div>
     </div>
     <div class="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-5">
@@ -66,7 +66,7 @@
         <div class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">{{ play_view.highlights.total_series }}</div>
     </div>
     <div class="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-5">
-        <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Explosive Spielzuege</div>
+        <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Explosive Spielzüge</div>
         <div class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">{{ play_view.highlights.explosive_plays }}</div>
     </div>
     <div class="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-5">
@@ -138,7 +138,7 @@
                 </select>
                 <div class="flex gap-2">
                     <button type="submit" class="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition">Filtern</button>
-                    <a href="{{ url_for('main.report_detail', report_id=report.id) }}" class="px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600 rounded-lg text-center">Zuruecksetzen</a>
+                    <a href="{{ url_for('main.report_detail', report_id=report.id) }}" class="px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600 rounded-lg text-center">Zurücksetzen</a>
                 </div>
             </form>
         </div>
@@ -199,7 +199,7 @@
                 </table>
             </div>
             {% else %}
-            <p class="text-sm text-slate-500 dark:text-slate-400">Keine Spielzuege fuer die gewaehlten Filter vorhanden.</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400">Keine Spielzüge für die gewählten Filter vorhanden.</p>
             {% endif %}
         </div>
 
@@ -227,7 +227,7 @@
                 {% for entry in play_view.quarter_summaries %}
                 <div class="rounded-xl border border-slate-200 dark:border-slate-700 p-4">
                     <div class="font-medium text-slate-900 dark:text-white">Q{{ entry.quarter }}</div>
-                    <div class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ entry.play_count }} Spielzuege · {{ entry.top_type }}</div>
+                    <div class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ entry.play_count }} Spielzüge · {{ entry.top_type }}</div>
                     <div class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ entry.top_result }} · Explosive {{ entry.explosive_count }}</div>
                 </div>
                 {% else %}
@@ -237,12 +237,12 @@
         </div>
 
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow border border-slate-200 dark:border-slate-700 p-6">
-            <h2 class="text-xl font-semibold text-slate-900 dark:text-white mb-4">Serienaufschluesselung</h2>
+            <h2 class="text-xl font-semibold text-slate-900 dark:text-white mb-4">Serienaufschlüsselung</h2>
             <div class="space-y-3">
                 {% for entry in play_view.series_summaries %}
                 <div class="rounded-xl border border-slate-200 dark:border-slate-700 p-4">
                     <div class="font-medium text-slate-900 dark:text-white">{{ entry.label }}</div>
-                    <div class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ entry.play_count }} Spielzuege · {{ entry.top_type }}</div>
+                    <div class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ entry.play_count }} Spielzüge · {{ entry.top_type }}</div>
                     <div class="text-sm text-slate-500 dark:text-slate-400 mt-1">Start: {{ entry.start_down }} · Ende: {{ entry.end_result }}</div>
                     <div class="text-sm text-slate-600 dark:text-slate-300 mt-2">{{ entry.summary }}</div>
                 </div>

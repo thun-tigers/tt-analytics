@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% set active_tab = "runs" %}
-{% block title %}Analyselaeufe – Tigers Analytics{% endblock %}
+{% block title %}Analyseläufe – Tigers Analytics{% endblock %}
 
 {% block content %}
 <div class="mb-8 rounded-[2rem] border border-slate-200 dark:border-slate-700 bg-white/85 dark:bg-slate-800/85 shadow-xl shadow-slate-200/60 dark:shadow-none overflow-hidden">
@@ -9,12 +9,12 @@
         <div class="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div class="max-w-3xl">
                 <div class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-sky-600 dark:text-sky-300">Analyseebene</div>
-                <h1 class="mt-3 text-3xl md:text-4xl font-bold tracking-tight text-slate-950 dark:text-white">Analyselaeufe</h1>
-                <p class="mt-3 text-sm md:text-base text-slate-600 dark:text-slate-300">Analyselaeufe verbinden ein konkretes Spiel mit einem Fokus-Team. Hier entscheidet sich, welches Material spaeter in Berichten und Play-by-Play-Sichten landet.</p>
+                <h1 class="mt-3 text-3xl md:text-4xl font-bold tracking-tight text-slate-950 dark:text-white">Analyseläufe</h1>
+                <p class="mt-3 text-sm md:text-base text-slate-600 dark:text-slate-300">Analyseläufe verbinden ein konkretes Spiel mit einem Fokus-Team. Hier entscheidet sich, welches Material später in Berichten und Play-by-Play-Sichten landet.</p>
                 <div class="mt-4 flex flex-wrap gap-2">
                     <span class="inline-flex items-center gap-2 rounded-full border border-slate-200/80 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
                         <i class="bi bi-play-circle"></i>
-                        <span>{{ runs|length }} Laeufe</span>
+                        <span>{{ runs|length }} Läufe</span>
                     </span>
                     <span class="inline-flex items-center gap-2 rounded-full border border-slate-200/80 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
                         <i class="bi bi-film"></i>
@@ -93,7 +93,7 @@
 <section class="rounded-[1.75rem] border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800/90 shadow-lg p-6">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-5">
         <div>
-            <h2 class="text-xl font-semibold text-slate-900 dark:text-white">Aktuelle Analyselaeufe</h2>
+            <h2 class="text-xl font-semibold text-slate-900 dark:text-white">Aktuelle Analyseläufe</h2>
             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Status, Clip-Fortschritt und Fokus sind direkt in der Karte sichtbar, damit du nicht erst in eine Detailseite musst.</p>
         </div>
         <span class="inline-flex items-center gap-2 rounded-full bg-slate-100 dark:bg-slate-900/60 px-3 py-1.5 text-sm text-slate-500 dark:text-slate-400">{{ runs|length }} Einträge</span>
@@ -126,7 +126,7 @@
                     {% if linked_reports_by_run.get(run.id) %}
                     <a href="{{ url_for('main.report_detail', report_id=linked_reports_by_run.get(run.id)[0].id) }}" class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 dark:border-emerald-800 px-3 py-2 text-sm font-medium text-emerald-700 dark:text-emerald-200 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition sm:w-auto">
                         <i class="bi bi-file-earmark-text"></i>
-                        <span>Bericht oeffnen</span>
+                        <span>Bericht öffnen</span>
                     </a>
                     {% elif run.status == 'completed' %}
                     <a href="{{ url_for('main.reports', create='1', run_id=run.id) }}" class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 dark:border-emerald-800 px-3 py-2 text-sm font-medium text-emerald-700 dark:text-emerald-200 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition sm:w-auto">
@@ -188,7 +188,7 @@
         <div class="p-4 bg-slate-100 dark:bg-slate-700 rounded-2xl mb-4">
             <i class="bi bi-play-circle text-slate-400 text-4xl"></i>
         </div>
-            <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300">Noch keine Analyselaeufe angelegt</h3>
+            <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300">Noch keine Analyseläufe angelegt</h3>
         <p class="text-slate-500 dark:text-slate-400 mt-2 text-sm">Dasselbe Spiel kann mehrfach mit unterschiedlichen Fokus-Teams ausgewertet werden.</p>
     </div>
     {% endif %}

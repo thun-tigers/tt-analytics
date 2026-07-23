@@ -1,7 +1,7 @@
 """Re-Export aus tt_common. Kanonische Implementierung: tt_common/authz.py.
 
-Bewusst duenner Shim, damit bestehende Imports (from ..authz import ...) unveraendert
-weiterlaufen, waehrend die Logik zentral in tt-common gepflegt wird.
+Bewusst dünner Shim, damit bestehende Imports (from ..authz import ...) unverändert
+weiterlaufen, während die Logik zentral in tt-common gepflegt wird.
 """
 
 from tt_common.authz import (  # noqa: F401

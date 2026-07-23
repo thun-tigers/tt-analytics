@@ -36,7 +36,7 @@ REPORT_STATUS_LABELS = {
     "generating": "Wird generiert",
     "completed": "Abgeschlossen",
     "completed_with_errors": "Abgeschlossen mit Fehlern",
-    "running": "Laeuft",
+    "running": "Läuft",
     "queued": "In Warteschlange",
     "failed": "Fehlgeschlagen",
 }
@@ -44,7 +44,7 @@ REPORT_STATUS_LABELS = {
 ANALYSIS_MODE_LABELS = {
     "opponent_scouting": "Gegnerscouting",
     "self_scouting": "Selbstscout",
-    "quality_control": "Qualitaetskontrolle",
+    "quality_control": "Qualitätskontrolle",
     "play_by_play": "Spielzugfolge",
 }
 
@@ -319,7 +319,7 @@ def _normalize_report_text(text):
         line = re.sub(r"^##\s*Defense$", "## Defense", line, flags=re.IGNORECASE)
         line = re.sub(r"^##\s*Situational Tendencies$", "## Situations-Tendenzen", line, flags=re.IGNORECASE)
         line = re.sub(r"^##\s*Top Coaching Points$", "## Wichtigste Coaching-Punkte", line, flags=re.IGNORECASE)
-        line = re.sub(r"^##\s*Data Gaps / Confidence$", "## Datenluecken / Konfidenz", line, flags=re.IGNORECASE)
+        line = re.sub(r"^##\s*Data Gaps / Confidence$", "## Datenlücken / Konfidenz", line, flags=re.IGNORECASE)
         line = re.sub(r"\bRun\s+(\d+)\b", r"Lauf \1", line)
         if line == "---":
             lines.append("")
@@ -893,7 +893,7 @@ def _build_report_data_quality(plays):
             {
                 "severity": "warning",
                 "title": "Spielzugtypen nur teilweise abgesichert",
-                "detail": f"Nur {play_type_coverage}% der Plays haben einen gepflegten Breakdown-Wert fuer `PLAY TYPE`. Run/Pass-Tendenzen sind deshalb nur eingeschraenkt belastbar.",
+                "detail": f"Nur {play_type_coverage}% der Plays haben einen gepflegten Breakdown-Wert für `PLAY TYPE`. Run/Pass-Tendenzen sind deshalb nur eingeschränkt belastbar.",
             }
         )
 
@@ -910,7 +910,7 @@ def _build_report_data_quality(plays):
             {
                 "severity": "warning",
                 "title": "Ergebnisdaten nur teilweise abgesichert",
-                "detail": f"Nur {result_coverage}% der Plays haben einen gepflegten Breakdown-Wert fuer `RESULT`. Ergebnis-Tendenzen koennen dadurch verzerrt sein.",
+                "detail": f"Nur {result_coverage}% der Plays haben einen gepflegten Breakdown-Wert für `RESULT`. Ergebnis-Tendenzen können dadurch verzerrt sein.",
             }
         )
 
@@ -971,16 +971,16 @@ def _build_breakdown_import_preview(game, normalized_rows, mapping_mode, import_
         if play_numbers and play_numbers[0] != 1:
             recommendation_reason = (
                 f"Die erste vorhandene PLAY #-Nummer ist {play_numbers[0]} statt 1. "
-                "Das spricht fuer geloeschte oder neu nummerierte Clips und damit fuer Mapping nach Zeilenreihenfolge."
+                "Das spricht für gelöschte oder neu nummerierte Clips und damit für Mapping nach Zeilenreihenfolge."
             )
         else:
             recommendation_reason = (
-                "Im Nummernraum von PLAY # gibt es Luecken. "
-                "Wenn Clips nach Loeschungen neu durchnummeriert wurden, ist Mapping nach Zeilenreihenfolge meist belastbarer."
+                "Im Nummernraum von PLAY # gibt es Lücken. "
+                "Wenn Clips nach Löschungen neu durchnummeriert wurden, ist Mapping nach Zeilenreihenfolge meist belastbarer."
             )
     else:
         recommendation = "play_number"
-        recommendation_reason = "Keine Luecken in PLAY # erkannt. Striktes Mapping ueber PLAY # ist fuer diesen Import plausibel."
+        recommendation_reason = "Keine Lücken in PLAY # erkannt. Striktes Mapping über PLAY # ist für diesen Import plausibel."
 
     preview_rows = []
     matched = 0
@@ -1152,7 +1152,7 @@ def _build_table_sections(metrics):
     return [
         {
             "title": "Gesamttendenzen",
-            "subtitle": "Aggregiert ueber das gesamte Spielmaterial im Report.",
+            "subtitle": "Aggregiert über das gesamte Spielmaterial im Report.",
             "tables": basic_tables(metrics["play_tendencies"], include_side=True),
         },
         {

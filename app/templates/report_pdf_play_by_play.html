@@ -20,13 +20,13 @@
         }
 
         :root {
-            --bg-soft: #eef2ff;
+            --bg-soft: #faf5fc;
             --bg-card: #f8fafc;
             --border: #cbd5e1;
             --text: #0f172a;
             --muted: #475569;
-            --brand: #312e81;
-            --brand-soft: #4338ca;
+            --brand: #4a1655;
+            --brand-soft: #702080;
             --success-bg: #ecfdf5;
             --success-text: #047857;
         }
@@ -46,7 +46,7 @@
             background: white;
         }
         .hero {
-            background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+            background: linear-gradient(135deg, #faf5fc, #f3e8f9);
             padding: 18px 20px;
             margin-bottom: 16px;
         }
@@ -186,7 +186,7 @@
 
     <div class="stats-grid">
         <div class="card">
-            <div class="label">Explosive Spielzuege</div>
+            <div class="label">Explosive Spielzüge</div>
             <div class="value">{{ play_view.highlights.explosive_plays }}</div>
         </div>
         <div class="card">
@@ -230,7 +230,7 @@
                     {% for entry in play_view.quarter_summaries %}
                     <div class="card">
                         <div class="label">Q{{ entry.quarter }}</div>
-                        <div class="value" style="font-size: 12pt;">{{ entry.play_count }} Spielzuege</div>
+                        <div class="value" style="font-size: 12pt;">{{ entry.play_count }} Spielzüge</div>
                         <div class="small">{{ entry.top_type }} · {{ entry.top_result }} · Explosive {{ entry.explosive_count }}</div>
                     </div>
                     {% endfor %}
@@ -238,11 +238,11 @@
             </div>
 
             <div>
-                <div class="label" style="margin-bottom: 8px;">Serienaufschluesselung</div>
+                <div class="label" style="margin-bottom: 8px;">Serienaufschlüsselung</div>
                 {% for entry in play_view.series_summaries %}
                 <div class="series-card">
                     <strong>{{ entry.label }}</strong><br>
-                    <span class="small">{{ entry.play_count }} Spielzuege · {{ entry.top_type }} · Start {{ entry.start_down }} · Ende {{ entry.end_result }}</span>
+                    <span class="small">{{ entry.play_count }} Spielzüge · {{ entry.top_type }} · Start {{ entry.start_down }} · Ende {{ entry.end_result }}</span>
                     <div style="margin-top: 6px;">{{ entry.summary }}</div>
                 </div>
                 {% endfor %}

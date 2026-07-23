@@ -28,7 +28,7 @@
                     </span>
                     <span class="inline-flex items-center gap-2 rounded-full border border-slate-200/80 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
                         <i class="bi bi-play-circle"></i>
-                        <span>{{ stats.runs }} Laeufe</span>
+                        <span>{{ stats.runs }} Läufe</span>
                     </span>
                     <span class="inline-flex items-center gap-2 rounded-full border border-slate-200/80 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
                         <i class="bi bi-file-earmark-text"></i>
@@ -50,13 +50,13 @@
                 {% endcall %}
                 {% call status_card('warning', url_for('main.runs'), compact=True, extra_classes='px-4 py-4 text-left') %}
                     <div class="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">Schritt 3</div>
-                    <div class="mt-1 text-sm font-semibold text-slate-900 dark:text-white">Analyselaeufe starten</div>
-                    <div class="mt-1 text-sm text-slate-500 dark:text-slate-400">Analyse pro Fokus-Team ausfuehren.</div>
+                    <div class="mt-1 text-sm font-semibold text-slate-900 dark:text-white">Analyseläufe starten</div>
+                    <div class="mt-1 text-sm text-slate-500 dark:text-slate-400">Analyse pro Fokus-Team ausführen.</div>
                 {% endcall %}
                 {% call status_card('success', url_for('main.reports'), compact=True, extra_classes='px-4 py-4 text-left') %}
                     <div class="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">Schritt 4</div>
                     <div class="mt-1 text-sm font-semibold text-slate-900 dark:text-white">Berichte erstellen</div>
-                    <div class="mt-1 text-sm text-slate-500 dark:text-slate-400">Tendenzen, Uebersicht und Export buendeln.</div>
+                    <div class="mt-1 text-sm text-slate-500 dark:text-slate-400">Tendenzen, Uebersicht und Export bündeln.</div>
                 {% endcall %}
             </div>
         </div>
@@ -101,7 +101,7 @@
                 <i class="bi bi-play-circle text-indigo-600 dark:text-indigo-400 text-2xl"></i>
             </div>
         </div>
-        <div class="text-sm text-slate-500 dark:text-slate-400">Analyselaeufe</div>
+        <div class="text-sm text-slate-500 dark:text-slate-400">Analyseläufe</div>
         <div class="text-3xl font-bold text-slate-900 dark:text-white mt-1">{{ stats.runs }}</div>
     </div>
 
@@ -129,7 +129,7 @@
                 <div class="text-sm text-slate-500 dark:text-slate-400 mt-1">Spielmaterial und Breakdown-Kontext sauber strukturieren.</div>
             </a>
             <a href="{{ url_for('main.runs') }}" class="block rounded-2xl border border-slate-200 dark:border-slate-700 p-4 hover:bg-slate-50 dark:hover:bg-slate-900/30 transition">
-                <div class="font-medium text-slate-900 dark:text-white">3. Analyselaeufe ausfuehren</div>
+                <div class="font-medium text-slate-900 dark:text-white">3. Analyseläufe ausführen</div>
                 <div class="text-sm text-slate-500 dark:text-slate-400 mt-1">Perspektiven pro Fokus-Team ausführen und anschließend bündeln.</div>
             </a>
             <a href="{{ url_for('main.reports') }}" class="block rounded-2xl border border-slate-200 dark:border-slate-700 p-4 hover:bg-slate-50 dark:hover:bg-slate-900/30 transition">
@@ -162,7 +162,7 @@
     </section>
 
     <section class="bg-white dark:bg-slate-800 rounded-[1.75rem] shadow border border-slate-200 dark:border-slate-700 p-6">
-        <h2 class="text-xl font-semibold text-slate-900 dark:text-white mb-4">Letzte Analyselaeufe</h2>
+        <h2 class="text-xl font-semibold text-slate-900 dark:text-white mb-4">Letzte Analyseläufe</h2>
         {% if recent_runs %}
         <div class="space-y-3">
             {% for run in recent_runs %}
@@ -177,7 +177,7 @@
             <div class="p-4 bg-slate-100 dark:bg-slate-700 rounded-2xl mb-4">
                 <i class="bi bi-play-circle text-slate-400 text-4xl"></i>
             </div>
-            <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300">Noch keine Analyselaeufe angelegt</h3>
+            <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300">Noch keine Analyseläufe angelegt</h3>
             <p class="text-slate-500 dark:text-slate-400 mt-2 text-sm">Ein Spiel kann mehrere Analyse-Perspektiven haben.</p>
         </div>
         {% endif %}
@@ -200,7 +200,7 @@
                 <i class="bi bi-file-earmark-text text-slate-400 text-4xl"></i>
             </div>
             <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300">Noch keine Berichte erstellt</h3>
-            <p class="text-slate-500 dark:text-slate-400 mt-2 text-sm">Mehrere Analyselaeufe fuer dasselbe Fokus-Team ergeben einen gemeinsamen Bericht.</p>
+            <p class="text-slate-500 dark:text-slate-400 mt-2 text-sm">Mehrere Analyseläufe für dasselbe Fokus-Team ergeben einen gemeinsamen Bericht.</p>
         </div>
         {% endif %}
     </section>

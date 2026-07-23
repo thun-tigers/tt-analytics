@@ -10,7 +10,7 @@
             <div class="max-w-3xl">
                 <div class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-indigo-500 dark:text-indigo-300">Scouting-Arbeitsbereich</div>
                 <h1 class="mt-3 text-3xl md:text-4xl font-bold tracking-tight text-slate-950 dark:text-white">Berichte</h1>
-                <p class="mt-3 text-sm md:text-base text-slate-600 dark:text-slate-300">Ein Bericht buendelt relevante Laeufe in einer coachbaren Struktur. Ziel ist weniger Suchen und schnelleres Entscheiden zwischen Gesamtbild, Tendenzen und Detailansicht.</p>
+                <p class="mt-3 text-sm md:text-base text-slate-600 dark:text-slate-300">Ein Bericht bündelt relevante Läufe in einer coachbaren Struktur. Ziel ist weniger Suchen und schnelleres Entscheiden zwischen Gesamtbild, Tendenzen und Detailansicht.</p>
                 <div class="mt-4 flex flex-wrap gap-2">
                     <span class="inline-flex items-center gap-2 rounded-full border border-slate-200/80 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
                         <i class="bi bi-collection"></i>
@@ -18,7 +18,7 @@
                     </span>
                     <span class="inline-flex items-center gap-2 rounded-full border border-slate-200/80 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
                         <i class="bi bi-play-circle"></i>
-                        <span>{{ available_runs|length }} verfuegbare Laeufe</span>
+                        <span>{{ available_runs|length }} verfügbare Läufe</span>
                     </span>
                 </div>
             </div>
@@ -38,7 +38,7 @@
     <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
             <h2 class="text-xl font-semibold text-slate-900 dark:text-white">Neuer Bericht</h2>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Waehle die passenden Analyselaeufe. Die Lauf-ID ist direkt sichtbar, damit du laufende und abgeschlossene Laeufe unterscheiden kannst.</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Wähle die passenden Analyseläufe. Die Lauf-ID ist direkt sichtbar, damit du laufende und abgeschlossene Läufe unterscheiden kannst.</p>
         </div>
         <button type="button" id="closeReportForm" class="self-end rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200 sm:self-auto">
             <i class="bi bi-x-lg"></i>
@@ -69,7 +69,7 @@
         {% endif %}
 
         <div>
-            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Analyselaeufe</label>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Analyseläufe</label>
             <div class="max-h-[28rem] overflow-auto rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-200 dark:divide-slate-700">
                 {% for run in available_runs %}
                 <label class="flex items-start gap-3 p-4 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/30 transition">
@@ -85,7 +85,7 @@
                     </span>
                 </label>
                 {% else %}
-                <p class="p-4 text-sm text-slate-500 dark:text-slate-400">Noch keine Laeufe verfuegbar.</p>
+                <p class="p-4 text-sm text-slate-500 dark:text-slate-400">Noch keine Läufe verfügbar.</p>
                 {% endfor %}
             </div>
         </div>
@@ -148,7 +148,7 @@
             </div>
         </div>
         <div class="md:col-span-2 xl:col-span-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
-            <a href="{{ url_for('main.reports') }}" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-center text-sm font-medium text-slate-600 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700 sm:w-auto">Zuruecksetzen</a>
+            <a href="{{ url_for('main.reports') }}" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-center text-sm font-medium text-slate-600 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700 sm:w-auto">Zurücksetzen</a>
             <button type="submit" class="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 sm:w-auto">Filter anwenden</button>
         </div>
     </form>
@@ -162,7 +162,7 @@
                     {% if active_filter_count %}
                     {{ active_filter_count }} aktive {{ 'Filter' if active_filter_count != 1 else 'Filterregel' }} auf die aktuelle Berichtsliste angewendet.
                     {% else %}
-                    Keine aktiven Filter. Du siehst die vollstaendige Berichtsliste in der gewaehlten Standardsortierung.
+                    Keine aktiven Filter. Du siehst die vollständige Berichtsliste in der gewählten Standardsortierung.
                     {% endif %}
                 </div>
             </div>
